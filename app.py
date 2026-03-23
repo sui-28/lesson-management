@@ -10,7 +10,7 @@ from models import Base, User, Teacher, Student, Report, Notification
 
 # ── アプリケーション設定 ──────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "instance", "juku.db")
+DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "instance", "juku.db"))
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
