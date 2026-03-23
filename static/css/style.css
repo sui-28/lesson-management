@@ -399,7 +399,24 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .role-badge.admin   { background: var(--primary-light); color: var(--primary); }
 .role-badge.teacher { background: #D1FAE5; color: #065F46; }
 .badge-red  { background: #FEE2E2; color: #991B1B; }
+.badge-warn { background: #FEF3C7; color: #92400E; }
+.badge-green{ background: #D1FAE5; color: #065F46; }
 .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+
+/* インラインフォーム */
+.inline-form { display: flex; align-items: center; gap: 6px; }
+
+/* コードブロック */
+.code-block {
+  background: var(--gray-100);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-family: monospace;
+  white-space: pre;
+  overflow-x: auto;
+}
 
 /* ── 空状態 ─────────────────────────────────────────────── */
 .empty-state { text-align: center; padding: 48px 16px; color: var(--gray-400); }

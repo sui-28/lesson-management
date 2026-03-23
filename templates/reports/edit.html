@@ -10,15 +10,13 @@
   <div class="card-body">
     <form method="POST" action="{{ url_for('report_edit', report_id=report.id) }}" id="editForm">
 
-      <!-- 担当先生（変更不可） -->
       <div class="form-group">
-        <label>担当先生</label>
+        <label>担当メンター</label>
         <input type="text" class="form-control" value="{{ report.teacher.name }}" readonly>
       </div>
 
-      <!-- 生徒名 -->
       <div class="form-group">
-        <label for="student_search">生徒名 <span class="required">*</span></label>
+        <label for="student_search">メンティー名 <span class="required">*</span></label>
         <div class="suggest-wrapper">
           <input type="text" id="student_search" class="form-control"
                  value="{{ report.student.name }}" autocomplete="off">
@@ -27,7 +25,6 @@
         </div>
       </div>
 
-      <!-- 授業実施日 -->
       <div class="form-row">
         <div class="form-group">
           <label for="lesson_date">授業実施日 <span class="required">*</span></label>
@@ -44,13 +41,11 @@
         </div>
       </div>
 
-      <!-- 授業内容 -->
       <div class="form-group">
         <label for="content">授業内容・進捗メモ <span class="optional">（任意）</span></label>
         <textarea id="content" name="content" class="form-control" rows="4">{{ report.content or '' }}</textarea>
       </div>
 
-      <!-- 次回予定 -->
       <div class="form-group">
         <label for="next_plan">次回の授業予定 <span class="optional">（任意）</span></label>
         <textarea id="next_plan" name="next_plan" class="form-control" rows="2">{{ report.next_plan or '' }}</textarea>
@@ -68,15 +63,15 @@
 {% block scripts %}
 <script>
 (function() {
-  const teacherId     = {{ report.teacher_id }};
-  const searchInput   = document.getElementById('student_search');
-  const hiddenInput   = document.getElementById('student_id');
-  const dropdown      = document.getElementById('suggest-dropdown');
-  let debounceTimer   = null;
+  const teacherId   = {{ report.teacher_id }};
+  const searchInput = document.getElementById('student_search');
+  const hiddenInput = document.getElementById('student_id');
+  const dropdown    = document.getElementById('suggest-dropdown');
+  let debounceTimer = null;
 
   function fetchSuggestions(q) {
-    const url = `/api/students?q=${encodeURIComponent(q)}&teacher_id=${teacherId}`;
-    fetch(url).then(r => r.json()).then(data => renderDropdown(data));
+    fetch(`/api/students?q=${encodeURIComponent(q)}&teacher_id=${teacherId}`)
+      .then(r => r.json()).then(data => renderDropdown(data));
   }
 
   function renderDropdown(items) {
@@ -89,7 +84,7 @@
         if (group !== lastGroup) {
           const header = document.createElement('div');
           header.className = 'suggest-group-header';
-          header.textContent = item.assigned ? '担当生徒' : '担当外';
+          header.textContent = item.assigned ? '担当メンティー' : '担当外';
           dropdown.appendChild(header);
           lastGroup = group;
         }

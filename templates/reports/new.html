@@ -10,9 +10,9 @@
   <div class="card-body">
     <form method="POST" action="{{ url_for('report_new') }}" id="reportForm">
 
-      <!-- 担当先生（管理者は選択可・先生は固定） -->
+      <!-- 担当メンター（管理者は選択可・メンターは固定） -->
       <div class="form-group">
-        <label for="teacher_id">担当先生 <span class="required">*</span></label>
+        <label for="teacher_id">担当メンター <span class="required">*</span></label>
         {% if current_user.is_admin %}
         <select id="teacher_id" name="teacher_id" class="form-control" required>
           <option value="">選択してください</option>
@@ -26,19 +26,19 @@
         {% endif %}
       </div>
 
-      <!-- 生徒名（サジェスト付き） -->
+      <!-- メンティー名（サジェスト付き） -->
       <div class="form-group">
-        <label for="student_search">生徒名 <span class="required">*</span></label>
+        <label for="student_search">メンティー名 <span class="required">*</span></label>
         <div class="suggest-wrapper">
           <input type="text" id="student_search" class="form-control"
-                 placeholder="生徒名を入力して検索..." autocomplete="off"
+                 placeholder="メンティー名を入力して検索..." autocomplete="off"
                  {% if not current_user.is_admin and not current_teacher %}disabled{% endif %}>
           <input type="hidden" id="student_id" name="student_id">
           <div id="suggest-dropdown" class="suggest-dropdown hidden"></div>
         </div>
         <p class="form-hint">
-          {% if current_user.is_teacher %}担当生徒が優先表示されます。{% endif %}
-          担当外の生徒も選択できます。
+          {% if current_user.is_teacher %}担当メンティーが優先表示されます。{% endif %}
+          担当外のメンティーも選択できます。
         </p>
       </div>
 
@@ -65,7 +65,7 @@
       <div class="form-group">
         <label for="content">授業内容・進捗メモ <span class="optional">（任意）</span></label>
         <textarea id="content" name="content" class="form-control" rows="4"
-                  placeholder="今日の授業内容や生徒の理解度、進捗状況などを記入してください">{{ request.form.get('content', '') }}</textarea>
+                  placeholder="今日の授業内容や理解度、進捗状況などを記入してください">{{ request.form.get('content', '') }}</textarea>
       </div>
 
       <!-- 次回の授業予定 -->
@@ -94,7 +94,6 @@
 
   function getTeacherId() {
     if (teacherSelect) return teacherSelect.value;
-    // 先生ロール: hidden input から
     const h = document.querySelector('input[name="teacher_id"]');
     return h ? h.value : '';
   }
@@ -104,32 +103,24 @@
   function fetchSuggestions(q) {
     const tid = getTeacherId();
     const url = `/api/students?q=${encodeURIComponent(q)}&teacher_id=${tid}`;
-    fetch(url)
-      .then(r => r.json())
-      .then(data => renderDropdown(data));
+    fetch(url).then(r => r.json()).then(data => renderDropdown(data));
   }
 
   function renderDropdown(items) {
     dropdown.innerHTML = '';
-    if (!items.length) {
-      dropdown.classList.add('hidden');
-      return;
-    }
-
+    if (!items.length) { dropdown.classList.add('hidden'); return; }
     let lastGroup = null;
     items.forEach(item => {
-      // グループヘッダー
       if (item.assigned !== null) {
         const group = item.assigned ? 'assigned' : 'other';
         if (group !== lastGroup) {
           const header = document.createElement('div');
           header.className = 'suggest-group-header';
-          header.textContent = item.assigned ? '担当生徒' : '担当外';
+          header.textContent = item.assigned ? '担当メンティー' : '担当外';
           dropdown.appendChild(header);
           lastGroup = group;
         }
       }
-
       const el = document.createElement('div');
       el.className = 'suggest-item' + (item.assigned ? ' assigned' : '');
       el.textContent = item.name;
@@ -141,7 +132,6 @@
       });
       dropdown.appendChild(el);
     });
-
     dropdown.classList.remove('hidden');
   }
 
@@ -150,18 +140,10 @@
     hiddenInput.value = '';
     debounceTimer = setTimeout(() => fetchSuggestions(this.value), 200);
   });
-
-  searchInput && searchInput.addEventListener('focus', function() {
-    fetchSuggestions(this.value);
-  });
-
+  searchInput && searchInput.addEventListener('focus', function() { fetchSuggestions(this.value); });
   document.addEventListener('click', function(e) {
-    if (!e.target.closest('.suggest-wrapper')) {
-      dropdown.classList.add('hidden');
-    }
+    if (!e.target.closest('.suggest-wrapper')) dropdown.classList.add('hidden');
   });
-
-  // 先生変更時に生徒リストをリセット
   teacherSelect && teacherSelect.addEventListener('change', function() {
     searchInput.value = '';
     hiddenInput.value = '';

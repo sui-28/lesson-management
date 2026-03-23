@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}CSVインポート{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>CSVインポート</h1>
+</div>
+
+<div class="two-col-layout">
+  <!-- インポートフォーム -->
+  <div class="card">
+    <div class="card-header"><h2>メンター・メンティー対応表をインポート</h2></div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin_import') }}" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>CSVファイル <span class="required">*</span></label>
+          <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">インポート実行</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- フォーマット説明 -->
+  <div class="card">
+    <div class="card-header"><h2>CSVフォーマット</h2></div>
+    <div class="card-body">
+      <p class="text-sm mb-2">1行目はヘッダー行として以下の列名を使用してください：</p>
+      <table class="table">
+        <thead>
+          <tr><th>列名</th><th>内容</th><th>必須</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>メンター名</code></td><td>メンターのフルネーム</td><td>✅</td></tr>
+          <tr><td><code>メンティー名</code></td><td>メンティーのフルネーム</td><td>✅</td></tr>
+        </tbody>
+      </table>
+      <p class="form-hint mt-2">例：</p>
+      <pre class="code-block">メンター名,メンティー名
+山田 太郎,鈴木 翔
+山田 太郎,高橋 美咲
+佐藤 花子,伊藤 健太</pre>
+      <p class="form-hint mt-2">
+        ・すでに登録済みのメンター・メンティーは追加されません。<br>
+        ・担当関係がすでに存在する場合はスキップされます。<br>
+        ・メンターのログインアカウントは「メンター管理」から別途作成してください。
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -105,19 +105,8 @@ def dashboard():
         notifications = get_unread_notifications(db)
         if current_user.is_admin:
             # 管理者: 全体統計
-            total_reports = db.query(func.count(Report.id)).scalar()
             total_teachers = db.query(func.count(Teacher.id)).scalar()
             total_students = db.query(func.count(Student.id)).scalar()
-
-            # 先生別授業回数（上位10件）
-            teacher_stats = (
-                db.query(Teacher.name, func.count(Report.id).label("cnt"))
-                .join(Report, Report.teacher_id == Teacher.id)
-                .group_by(Teacher.id)
-                .order_by(func.count(Report.id).desc())
-                .limit(10)
-                .all()
-            )
 
             # 月別授業回数（過去6ヶ月）
             monthly_stats = (
@@ -132,6 +121,15 @@ def dashboard():
             )
             monthly_stats = list(reversed(monthly_stats))
 
+            # メンティー別授業回数・残り回数
+            student_stats = (
+                db.query(Student, func.count(Report.id).label("cnt"))
+                .outerjoin(Report, Report.student_id == Student.id)
+                .group_by(Student.id)
+                .order_by(Student.name)
+                .all()
+            )
+
             # 最近の報告書
             recent_reports = (
                 db.query(Report)
@@ -142,11 +140,10 @@ def dashboard():
 
             return render_template(
                 "dashboard_admin.html",
-                total_reports=total_reports,
                 total_teachers=total_teachers,
                 total_students=total_students,
-                teacher_stats=teacher_stats,
                 monthly_stats=monthly_stats,
+                student_stats=student_stats,
                 recent_reports=recent_reports,
                 notifications=notifications,
             )
@@ -176,13 +173,13 @@ def dashboard():
             )
             monthly = list(reversed(monthly))
 
-            # 自分の担当生徒別授業回数
+            # 自分の担当メンティー別授業回数・残り回数
             student_stats = (
-                db.query(Student.name, func.count(Report.id).label("cnt"))
-                .join(Report, Report.student_id == Student.id)
-                .filter(Report.teacher_id == teacher.id)
+                db.query(Student.name, func.count(Report.id).label("cnt"), Student.total_lessons)
+                .outerjoin(Report, (Report.student_id == Student.id) & (Report.teacher_id == teacher.id))
+                .filter(Student.id.in_([s.id for s in teacher.students]))
                 .group_by(Student.id)
-                .order_by(func.count(Report.id).desc())
+                .order_by(Student.name)
                 .all()
             )
 
@@ -552,10 +549,98 @@ def admin_student_delete(sid):
         if student:
             db.delete(student)
             db.commit()
-            flash("生徒を削除しました。", "success")
+            flash("メンティーを削除しました。", "success")
     finally:
         db.close()
     return redirect(url_for("admin_students"))
+
+
+@app.route("/admin/students/<int:sid>/set_total", methods=["POST"])
+@login_required
+@admin_required
+def admin_student_set_total(sid):
+    """メンティーの総授業回数を設定"""
+    db = SessionLocal()
+    try:
+        student = db.get(Student, sid)
+        if student:
+            val = request.form.get("total_lessons", "").strip()
+            student.total_lessons = int(val) if val.isdigit() else None
+            db.commit()
+            flash(f"「{student.name}」の総授業回数を更新しました。", "success")
+    finally:
+        db.close()
+    return redirect(url_for("admin_students"))
+
+
+# ── 管理者: CSVインポート ─────────────────────────────────────
+@app.route("/admin/import", methods=["GET", "POST"])
+@login_required
+@admin_required
+def admin_import():
+    """メンター・メンティー対応表CSVをインポート"""
+    notifications = []
+    if request.method == "POST":
+        f = request.files.get("csv_file")
+        if not f or not f.filename.endswith(".csv"):
+            flash("CSVファイルを選択してください。", "danger")
+            return redirect(url_for("admin_import"))
+
+        import csv, io
+        content = f.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(content))
+
+        db = SessionLocal()
+        try:
+            created_mentors = created_mentees = created_assignments = 0
+            for row in reader:
+                mentor_name = (row.get("メンター名") or row.get("mentor") or "").strip()
+                mentee_name = (row.get("メンティー名") or row.get("mentee") or "").strip()
+                if not mentor_name or not mentee_name:
+                    continue
+
+                # メンター取得 or 作成
+                teacher = db.query(Teacher).filter_by(name=mentor_name).first()
+                if not teacher:
+                    teacher = Teacher(name=mentor_name)
+                    db.add(teacher)
+                    db.flush()
+                    created_mentors += 1
+
+                # メンティー取得 or 作成
+                student = db.query(Student).filter_by(name=mentee_name).first()
+                if not student:
+                    student = Student(name=mentee_name)
+                    db.add(student)
+                    db.flush()
+                    created_mentees += 1
+
+                # 担当割当
+                if student not in teacher.students:
+                    teacher.students.append(student)
+                    created_assignments += 1
+
+            db.commit()
+            flash(
+                f"インポート完了: メンター {created_mentors}名追加、"
+                f"メンティー {created_mentees}名追加、"
+                f"担当 {created_assignments}件追加。",
+                "success"
+            )
+        except Exception as e:
+            db.rollback()
+            flash(f"インポートエラー: {e}", "danger")
+        finally:
+            db.close()
+
+        return redirect(url_for("admin_import"))
+
+    db = SessionLocal()
+    try:
+        notifications = get_unread_notifications(db)
+    finally:
+        db.close()
+    return render_template("admin/import.html", notifications=notifications)
 
 
 # ── 管理者: 担当割当管理 ──────────────────────────────────────

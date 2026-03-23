@@ -26,9 +26,10 @@
           管理 ▾
         </button>
         <div class="dropdown-menu">
-          <a href="{{ url_for('admin_teachers') }}" class="dropdown-item">先生管理</a>
-          <a href="{{ url_for('admin_students') }}" class="dropdown-item">生徒管理</a>
+          <a href="{{ url_for('admin_teachers') }}" class="dropdown-item">メンター管理</a>
+          <a href="{{ url_for('admin_students') }}" class="dropdown-item">メンティー管理</a>
           <a href="{{ url_for('admin_assignments') }}" class="dropdown-item">担当割当</a>
+          <a href="{{ url_for('admin_import') }}" class="dropdown-item">CSVインポート</a>
           <a href="{{ url_for('admin_users') }}" class="dropdown-item">ユーザー管理</a>
           <hr class="dropdown-divider">
           <a href="{{ url_for('admin_alerts') }}" class="dropdown-item">
@@ -42,7 +43,7 @@
       {% endif %}
       <div class="nav-user">
         <span class="user-name">{{ current_user.username }}</span>
-        <span class="role-badge {{ current_user.role }}">{{ '管理者' if current_user.is_admin else '先生' }}</span>
+        <span class="role-badge {{ current_user.role }}">{{ '管理者' if current_user.is_admin else 'メンター' }}</span>
         <a href="{{ url_for('logout') }}" class="nav-link logout">ログアウト</a>
       </div>
     </div>

@@ -17,79 +17,95 @@
 <!-- サマリーカード -->
 <div class="stats-grid">
   <div class="stat-card">
-    <div class="stat-number">{{ total_reports }}</div>
-    <div class="stat-label">総授業回数</div>
-  </div>
-  <div class="stat-card">
     <div class="stat-number">{{ total_teachers }}</div>
-    <div class="stat-label">先生数</div>
+    <div class="stat-label">メンター数</div>
   </div>
   <div class="stat-card">
     <div class="stat-number">{{ total_students }}</div>
-    <div class="stat-label">生徒数</div>
+    <div class="stat-label">メンティー数</div>
   </div>
 </div>
 
-<div class="dashboard-grid">
-  <!-- 先生別授業回数 -->
-  <div class="card">
-    <div class="card-header">
-      <h2>先生別授業回数（上位10件）</h2>
-    </div>
-    <div class="card-body">
-      {% if teacher_stats %}
-      <table class="table">
-        <thead>
-          <tr><th>先生名</th><th>授業回数</th><th></th></tr>
-        </thead>
-        <tbody>
-          {% for name, cnt in teacher_stats %}
-          <tr>
-            <td>{{ name }}</td>
-            <td><strong>{{ cnt }}</strong> 回</td>
-            <td>
-              <div class="bar-container">
-                <div class="bar" style="width: {{ (cnt / teacher_stats[0][1] * 100)|int }}%"></div>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p class="text-muted text-center">報告書がまだありません。</p>
-      {% endif %}
-    </div>
+<!-- 月別授業回数 -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h2>月別授業回数</h2>
   </div>
-
-  <!-- 月別授業回数 -->
-  <div class="card">
-    <div class="card-header">
-      <h2>月別授業回数</h2>
-    </div>
-    <div class="card-body">
-      {% if monthly_stats %}
-      <div class="chart-bar-wrapper">
-        {% set max_cnt = monthly_stats|map(attribute=1)|max %}
-        {% for month, cnt in monthly_stats %}
-        <div class="chart-bar-group">
-          <div class="chart-bar-col">
-            <span class="chart-bar-value">{{ cnt }}</span>
-            <div class="chart-bar-fill" style="height: {{ (cnt / max_cnt * 120)|int }}px"></div>
-          </div>
-          <div class="chart-bar-label">{{ month }}</div>
+  <div class="card-body">
+    {% if monthly_stats %}
+    <div class="chart-bar-wrapper">
+      {% set max_cnt = monthly_stats|map(attribute=1)|max %}
+      {% for month, cnt in monthly_stats %}
+      <div class="chart-bar-group">
+        <div class="chart-bar-col">
+          <span class="chart-bar-value">{{ cnt }}</span>
+          <div class="chart-bar-fill" style="height: {{ (cnt / max_cnt * 120)|int }}px"></div>
         </div>
-        {% endfor %}
+        <div class="chart-bar-label">{{ month }}</div>
       </div>
-      {% else %}
-      <p class="text-muted text-center">データがありません。</p>
-      {% endif %}
+      {% endfor %}
     </div>
+    {% else %}
+    <p class="text-muted text-center">データがありません。</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- メンティー別授業回数・残り回数 -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h2>メンティー別 授業回数・残り回数</h2>
+    <a href="{{ url_for('admin_students') }}" class="btn btn-sm btn-outline">回数を設定する</a>
+  </div>
+  <div class="card-body">
+    {% if student_stats %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>メンティー名</th>
+          <th>実施済み</th>
+          <th>契約回数</th>
+          <th>残り回数</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student, cnt in student_stats %}
+        <tr>
+          <td>{{ student.name }}</td>
+          <td><strong>{{ cnt }}</strong> 回</td>
+          <td>
+            {% if student.total_lessons %}{{ student.total_lessons }} 回{% else %}<span class="text-muted">未設定</span>{% endif %}
+          </td>
+          <td>
+            {% if student.total_lessons %}
+              {% set remaining = student.total_lessons - cnt %}
+              {% if remaining <= 0 %}
+              <span class="badge badge-red">残り {{ remaining }} 回</span>
+              {% elif remaining <= 3 %}
+              <span class="badge badge-warn">残り {{ remaining }} 回</span>
+              {% else %}
+              <span class="badge badge-green">残り {{ remaining }} 回</span>
+              {% endif %}
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('report_list', student_id=student.id) }}" class="btn btn-sm btn-ghost">報告書</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-center">メンティーが登録されていません。</p>
+    {% endif %}
   </div>
 </div>
 
 <!-- 最近の報告書 -->
-<div class="card mt-4">
+<div class="card">
   <div class="card-header">
     <h2>最近の報告書</h2>
     <a href="{{ url_for('report_list') }}" class="btn btn-sm btn-outline">すべて見る</a>
@@ -98,7 +114,7 @@
     {% if recent_reports %}
     <table class="table">
       <thead>
-        <tr><th>授業日</th><th>先生</th><th>生徒</th><th>授業時間</th><th>提出日時</th><th></th></tr>
+        <tr><th>授業日</th><th>メンター</th><th>メンティー</th><th>授業時間</th><th>提出日時</th><th></th></tr>
       </thead>
       <tbody>
         {% for r in recent_reports %}

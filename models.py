@@ -55,11 +55,12 @@ class Teacher(Base):
 
 
 class Student(Base):
-    """生徒マスタ"""
+    """メンティーマスタ"""
     __tablename__ = "student"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
+    total_lessons = Column(Integer, nullable=True)  # 契約総授業回数（未設定=None）
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     teachers = relationship("Teacher", secondary=assignment_table, back_populates="students", lazy="selectin")
