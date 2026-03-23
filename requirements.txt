@@ -4,3 +4,4 @@ flask-wtf
 sqlalchemy
 werkzeug
 gunicorn
+psycopg2-binary
