@@ -852,7 +852,10 @@ def init_db():
 
 
 # 起動時に自動でDB初期化（gunicorn経由でも動作）
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"[WARNING] DB初期化エラー: {e}")
 
 if __name__ == "__main__":
     app.run(debug=True, port=5050)
