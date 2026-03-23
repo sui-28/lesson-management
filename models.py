@@ -29,7 +29,7 @@ class User(UserMixin, Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # 先生ロールの場合のみ関連
-    teacher = relationship("Teacher", back_populates="user", uselist=False)
+    teacher = relationship("Teacher", back_populates="user", uselist=False, lazy="selectin")
 
     @property
     def is_admin(self):
