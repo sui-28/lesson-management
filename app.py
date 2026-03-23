@@ -21,12 +21,10 @@ app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 
 # ── データベース ──────────────────────────────────────────────
-# PostgreSQL（Neon等）はSSL必須
-if DATABASE_URL.startswith("postgresql://"):
-    engine = create_engine(DATABASE_URL, echo=False,
-                           connect_args={"sslmode": "require"})
-else:
-    engine = create_engine(DATABASE_URL, echo=False)
+# PostgreSQL（Neon等）はSSL必須 - URLにsslmodeが未指定の場合は追加
+if DATABASE_URL.startswith("postgresql://") and "sslmode" not in DATABASE_URL:
+    DATABASE_URL += "?sslmode=require"
+engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(bind=engine)
 
 
