@@ -11,7 +11,7 @@ from models import Base, User, Teacher, Student, Report, Notification
 # ── アプリケーション設定 ──────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "instance", "juku.db")
-DATABASE_URL = os.environ.get("DATABASE_URL",  f"sqlite:///{DB_PATH}")
+DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DB_PATH}")
 # Render の PostgreSQL URL は "postgres://" で始まる場合があるため修正
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -21,7 +21,12 @@ app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 
 # ── データベース ──────────────────────────────────────────────
-engine = create_engine(DATABASE_URL, echo=False)
+# PostgreSQL（Neon等）はSSL必須
+if DATABASE_URL.startswith("postgresql://"):
+    engine = create_engine(DATABASE_URL, echo=False,
+                           connect_args={"sslmode": "require"})
+else:
+    engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(bind=engine)
 
 
