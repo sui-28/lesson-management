@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}授業管理システム{% endblock %} | 個別指導塾</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  {% if current_user.is_authenticated %}
+  <nav class="navbar">
+    <div class="navbar-brand">📚 授業管理システム</div>
+    <div class="navbar-menu">
+      <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+        ホーム
+      </a>
+      <a href="{{ url_for('report_list') }}" class="nav-link {% if 'report' in request.endpoint %}active{% endif %}">
+        報告書
+      </a>
+      <a href="{{ url_for('report_new') }}" class="nav-link btn-primary-nav">
+        ＋ 報告書提出
+      </a>
+      {% if current_user.is_admin %}
+      <div class="dropdown">
+        <button class="nav-link dropdown-toggle {% if 'admin' in request.endpoint %}active{% endif %}">
+          管理 ▾
+        </button>
+        <div class="dropdown-menu">
+          <a href="{{ url_for('admin_teachers') }}" class="dropdown-item">先生管理</a>
+          <a href="{{ url_for('admin_students') }}" class="dropdown-item">生徒管理</a>
+          <a href="{{ url_for('admin_assignments') }}" class="dropdown-item">担当割当</a>
+          <a href="{{ url_for('admin_users') }}" class="dropdown-item">ユーザー管理</a>
+          <hr class="dropdown-divider">
+          <a href="{{ url_for('admin_alerts') }}" class="dropdown-item">
+            未提出アラート
+            {% if notifications|length > 0 %}
+            <span class="badge">{{ notifications|length }}</span>
+            {% endif %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+      <div class="nav-user">
+        <span class="user-name">{{ current_user.username }}</span>
+        <span class="role-badge {{ current_user.role }}">{{ '管理者' if current_user.is_admin else '先生' }}</span>
+        <a href="{{ url_for('logout') }}" class="nav-link logout">ログアウト</a>
+      </div>
+    </div>
+  </nav>
+  {% endif %}
+
+  <main class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+          {{ message }}
+          <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

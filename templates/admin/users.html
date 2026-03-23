@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}ユーザー管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>ユーザー管理</h1>
+</div>
+
+<div class="two-col-layout">
+  <!-- ユーザー一覧 -->
+  <div class="card">
+    <div class="card-header"><h2>登録済みユーザー</h2></div>
+    <div class="card-body">
+      <table class="table">
+        <thead>
+          <tr><th>ユーザー名</th><th>ロール</th><th>状態</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u.username }}{% if u.id == current_user.id %} <span class="badge">自分</span>{% endif %}</td>
+            <td>
+              <span class="role-badge {{ u.role }}">{{ '管理者' if u.role == 'admin' else '先生' }}</span>
+            </td>
+            <td>{{ '有効' if u.is_active else '無効' }}</td>
+            <td>
+              {% if u.id != current_user.id %}
+              <form method="POST" action="{{ url_for('admin_user_delete', uid=u.id) }}"
+                    onsubmit="return confirm('「{{ u.username }}」を削除しますか？')">
+                <button type="submit" class="btn btn-sm btn-danger">削除</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 管理者追加フォーム -->
+  <div class="card">
+    <div class="card-header"><h2>管理者アカウントを追加</h2></div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin_user_new') }}">
+        <div class="form-group">
+          <label>ユーザー名 <span class="required">*</span></label>
+          <input type="text" name="username" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>パスワード <span class="required">*</span></label>
+          <input type="password" name="password" class="form-control" required>
+        </div>
+        <input type="hidden" name="role" value="admin">
+        <button type="submit" class="btn btn-primary btn-block">管理者を追加</button>
+      </form>
+      <p class="form-hint mt-2">
+        先生アカウントは「先生管理」ページから追加してください。
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}未提出アラート{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>未提出アラート</h1>
+</div>
+
+<!-- アラートチェック実行 -->
+<div class="card mb-4">
+  <div class="card-header"><h2>アラートチェックを実行</h2></div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('admin_alerts_check') }}" class="filter-form">
+      <div class="form-group">
+        <label>しきい値（週数）</label>
+        <select name="threshold_days" class="form-control form-control-sm">
+          <option value="1">1週間以上未提出</option>
+          <option value="2" selected>2週間以上未提出</option>
+          <option value="3">3週間以上未提出</option>
+          <option value="4">4週間以上未提出</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-warning">チェック実行</button>
+    </form>
+    <p class="form-hint mt-2">
+      担当先生×生徒の最終授業日から指定期間以上経過している場合にアラートを生成します。
+    </p>
+  </div>
+</div>
+
+<!-- 通知一覧 -->
+<div class="card">
+  <div class="card-header"><h2>通知一覧</h2></div>
+  <div class="card-body">
+    {% if all_notifications %}
+    <table class="table">
+      <thead>
+        <tr><th>内容</th><th>作成日時</th><th>状態</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for n in all_notifications %}
+        <tr class="{{ '' if n.is_read else 'row-unread' }}">
+          <td>{{ n.message }}</td>
+          <td class="text-muted text-sm">{{ n.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
+          <td>
+            {% if n.is_read %}
+            <span class="badge badge-gray">既読</span>
+            {% else %}
+            <span class="badge badge-red">未読</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not n.is_read %}
+            <button class="btn btn-sm btn-outline" onclick="markRead({{ n.id }}, this)">既読にする</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">✅</div>
+      <p>アラートはありません。</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function markRead(id, btn) {
+  fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      const row = btn.closest('tr');
+      row.classList.remove('row-unread');
+      btn.remove();
+      row.querySelector('.badge-red').className = 'badge badge-gray';
+      row.querySelector('.badge').textContent = '既読';
+    });
+}
+</script>
+{% endblock %}

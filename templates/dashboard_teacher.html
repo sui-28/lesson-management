@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}ダッシュボード{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>ダッシュボード</h1>
+  {% if teacher %}
+  <span class="text-muted">{{ teacher.name }} 先生</span>
+  {% endif %}
+</div>
+
+{% if not teacher %}
+<div class="alert alert-warning">
+  先生情報が登録されていません。管理者にお問い合わせください。
+</div>
+{% else %}
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-number">{{ my_reports_count }}</div>
+    <div class="stat-label">自分の授業回数</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ my_students_count }}</div>
+    <div class="stat-label">担当生徒数</div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- 担当生徒別授業回数 -->
+  <div class="card">
+    <div class="card-header">
+      <h2>担当生徒別授業回数</h2>
+    </div>
+    <div class="card-body">
+      {% if student_stats %}
+      <table class="table">
+        <thead>
+          <tr><th>生徒名</th><th>授業回数</th></tr>
+        </thead>
+        <tbody>
+          {% for name, cnt in student_stats %}
+          <tr>
+            <td>{{ name }}</td>
+            <td><strong>{{ cnt }}</strong> 回</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted text-center">まだ報告書がありません。</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 月別授業回数 -->
+  <div class="card">
+    <div class="card-header">
+      <h2>月別授業回数</h2>
+    </div>
+    <div class="card-body">
+      {% if monthly %}
+      <div class="chart-bar-wrapper">
+        {% set max_cnt = monthly|map(attribute=1)|max %}
+        {% for month, cnt in monthly %}
+        <div class="chart-bar-group">
+          <div class="chart-bar-col">
+            <span class="chart-bar-value">{{ cnt }}</span>
+            <div class="chart-bar-fill" style="height: {{ (cnt / max_cnt * 120)|int }}px"></div>
+          </div>
+          <div class="chart-bar-label">{{ month }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted text-center">データがありません。</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- 最近の報告書 -->
+<div class="card mt-4">
+  <div class="card-header">
+    <h2>最近の報告書</h2>
+    <a href="{{ url_for('report_list') }}" class="btn btn-sm btn-outline">すべて見る</a>
+  </div>
+  <div class="card-body">
+    {% if recent_reports %}
+    <table class="table">
+      <thead>
+        <tr><th>授業日</th><th>生徒</th><th>授業時間</th><th>提出日時</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in recent_reports %}
+        <tr>
+          <td>{{ r.lesson_date }}</td>
+          <td>{{ r.student.name }}</td>
+          <td>{{ r.lesson_duration }}</td>
+          <td class="text-muted text-sm">{{ r.submitted_at.strftime('%m/%d %H:%M') }}</td>
+          <td><a href="{{ url_for('report_detail', report_id=r.id) }}" class="btn btn-sm btn-outline">詳細</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-center">報告書がまだありません。</p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

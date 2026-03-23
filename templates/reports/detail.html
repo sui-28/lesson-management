@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}報告書詳細{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>報告書詳細</h1>
+  <div>
+    <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-outline">編集</a>
+    <a href="{{ url_for('report_list') }}" class="btn btn-ghost">一覧へ戻る</a>
+  </div>
+</div>
+
+<div class="card form-card">
+  <div class="card-body">
+    <dl class="detail-list">
+      <dt>担当先生</dt>
+      <dd>{{ report.teacher.name }}</dd>
+
+      <dt>生徒名</dt>
+      <dd>{{ report.student.name }}</dd>
+
+      <dt>授業実施日</dt>
+      <dd>{{ report.lesson_date }}</dd>
+
+      <dt>授業時間</dt>
+      <dd>{{ report.lesson_duration }}</dd>
+
+      <dt>授業内容・進捗メモ</dt>
+      <dd class="content-text">{{ report.content or '（未入力）' }}</dd>
+
+      <dt>次回の授業予定</dt>
+      <dd class="content-text">{{ report.next_plan or '（未入力）' }}</dd>
+
+      <dt>提出日時</dt>
+      <dd>{{ report.submitted_at.strftime('%Y年%m月%d日 %H:%M') }}</dd>
+
+      {% if report.updated_at != report.submitted_at %}
+      <dt>最終更新</dt>
+      <dd>{{ report.updated_at.strftime('%Y年%m月%d日 %H:%M') }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+{% endblock %}

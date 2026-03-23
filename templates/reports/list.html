@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}報告書一覧{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>報告書一覧</h1>
+  <a href="{{ url_for('report_new') }}" class="btn btn-primary">＋ 新規提出</a>
+</div>
+
+<!-- 検索フィルタ -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="GET" class="filter-form">
+      {% if current_user.is_admin %}
+      <div class="form-group">
+        <label>先生</label>
+        <select name="teacher_id" class="form-control form-control-sm">
+          <option value="">すべて</option>
+          {% for t in teachers %}
+          <option value="{{ t.id }}" {% if request.args.get('teacher_id')|int == t.id %}selected{% endif %}>
+            {{ t.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="form-group">
+        <label>生徒</label>
+        <select name="student_id" class="form-control form-control-sm">
+          <option value="">すべて</option>
+          {% for s in students %}
+          <option value="{{ s.id }}" {% if request.args.get('student_id')|int == s.id %}selected{% endif %}>
+            {{ s.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>授業日（開始）</label>
+        <input type="date" name="date_from" class="form-control form-control-sm"
+               value="{{ request.args.get('date_from', '') }}">
+      </div>
+      <div class="form-group">
+        <label>授業日（終了）</label>
+        <input type="date" name="date_to" class="form-control form-control-sm"
+               value="{{ request.args.get('date_to', '') }}">
+      </div>
+      <button type="submit" class="btn btn-outline">絞り込む</button>
+      <a href="{{ url_for('report_list') }}" class="btn btn-ghost">リセット</a>
+    </form>
+  </div>
+</div>
+
+<!-- 報告書一覧テーブル -->
+<div class="card">
+  <div class="card-body">
+    {% if reports %}
+    <p class="text-muted text-sm mb-2">{{ reports|length }} 件</p>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>授業日</th>
+          {% if current_user.is_admin %}<th>先生</th>{% endif %}
+          <th>生徒</th>
+          <th>授業時間</th>
+          <th>授業内容</th>
+          <th>提出日時</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+        <tr>
+          <td>{{ r.lesson_date }}</td>
+          {% if current_user.is_admin %}<td>{{ r.teacher.name }}</td>{% endif %}
+          <td>{{ r.student.name }}</td>
+          <td>{{ r.lesson_duration }}</td>
+          <td class="text-truncate" style="max-width:200px">
+            {{ r.content or '—' }}
+          </td>
+          <td class="text-muted text-sm">{{ r.submitted_at.strftime('%Y/%m/%d %H:%M') }}</td>
+          <td>
+            <a href="{{ url_for('report_detail', report_id=r.id) }}" class="btn btn-sm btn-outline">詳細</a>
+            <a href="{{ url_for('report_edit', report_id=r.id) }}" class="btn btn-sm btn-ghost">編集</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📄</div>
+      <p>報告書がありません。</p>
+      <a href="{{ url_for('report_new') }}" class="btn btn-primary">最初の報告書を提出する</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

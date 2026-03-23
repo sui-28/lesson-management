@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}メンティー管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>メンティー管理</h1>
+</div>
+
+<div class="two-col-layout">
+  <!-- 生徒一覧 -->
+  <div class="card">
+    <div class="card-header"><h2>登録済みメンティー</h2></div>
+    <div class="card-body">
+      {% if students %}
+      <table class="table">
+        <thead>
+          <tr><th>名前</th><th>担当メンター数</th><th>授業回数</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.teachers|length }}</td>
+            <td>{{ s.reports|length }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('admin_student_delete', sid=s.id) }}"
+                    onsubmit="return confirm('「{{ s.name }}」を削除しますか？')">
+                <button type="submit" class="btn btn-sm btn-danger">削除</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted text-center">メンティーが登録されていません。</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 生徒追加フォーム -->
+  <div class="card">
+    <div class="card-header"><h2>メンティーを追加</h2></div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin_student_new') }}">
+        <div class="form-group">
+          <label>メンティー名 <span class="required">*</span></label>
+          <input type="text" name="name" class="form-control" placeholder="例: 鈴木 花子" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">追加する</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

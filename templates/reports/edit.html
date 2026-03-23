@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}報告書編集{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>報告書編集</h1>
+</div>
+
+<div class="card form-card">
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('report_edit', report_id=report.id) }}" id="editForm">
+
+      <!-- 担当先生（変更不可） -->
+      <div class="form-group">
+        <label>担当先生</label>
+        <input type="text" class="form-control" value="{{ report.teacher.name }}" readonly>
+      </div>
+
+      <!-- 生徒名 -->
+      <div class="form-group">
+        <label for="student_search">生徒名 <span class="required">*</span></label>
+        <div class="suggest-wrapper">
+          <input type="text" id="student_search" class="form-control"
+                 value="{{ report.student.name }}" autocomplete="off">
+          <input type="hidden" id="student_id" name="student_id" value="{{ report.student_id }}">
+          <div id="suggest-dropdown" class="suggest-dropdown hidden"></div>
+        </div>
+      </div>
+
+      <!-- 授業実施日 -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="lesson_date">授業実施日 <span class="required">*</span></label>
+          <input type="date" id="lesson_date" name="lesson_date" class="form-control"
+                 value="{{ report.lesson_date }}" required>
+        </div>
+        <div class="form-group">
+          <label for="lesson_duration">授業時間 <span class="required">*</span></label>
+          <select id="lesson_duration" name="lesson_duration" class="form-control" required>
+            {% for d in ['60分', '90分', '120分', '45分', '30分'] %}
+            <option value="{{ d }}" {% if report.lesson_duration == d %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- 授業内容 -->
+      <div class="form-group">
+        <label for="content">授業内容・進捗メモ <span class="optional">（任意）</span></label>
+        <textarea id="content" name="content" class="form-control" rows="4">{{ report.content or '' }}</textarea>
+      </div>
+
+      <!-- 次回予定 -->
+      <div class="form-group">
+        <label for="next_plan">次回の授業予定 <span class="optional">（任意）</span></label>
+        <textarea id="next_plan" name="next_plan" class="form-control" rows="2">{{ report.next_plan or '' }}</textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">更新する</button>
+        <a href="{{ url_for('report_detail', report_id=report.id) }}" class="btn btn-ghost">キャンセル</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const teacherId     = {{ report.teacher_id }};
+  const searchInput   = document.getElementById('student_search');
+  const hiddenInput   = document.getElementById('student_id');
+  const dropdown      = document.getElementById('suggest-dropdown');
+  let debounceTimer   = null;
+
+  function fetchSuggestions(q) {
+    const url = `/api/students?q=${encodeURIComponent(q)}&teacher_id=${teacherId}`;
+    fetch(url).then(r => r.json()).then(data => renderDropdown(data));
+  }
+
+  function renderDropdown(items) {
+    dropdown.innerHTML = '';
+    if (!items.length) { dropdown.classList.add('hidden'); return; }
+    let lastGroup = null;
+    items.forEach(item => {
+      if (item.assigned !== null) {
+        const group = item.assigned ? 'assigned' : 'other';
+        if (group !== lastGroup) {
+          const header = document.createElement('div');
+          header.className = 'suggest-group-header';
+          header.textContent = item.assigned ? '担当生徒' : '担当外';
+          dropdown.appendChild(header);
+          lastGroup = group;
+        }
+      }
+      const el = document.createElement('div');
+      el.className = 'suggest-item' + (item.assigned ? ' assigned' : '');
+      el.textContent = item.name;
+      el.addEventListener('mousedown', () => {
+        hiddenInput.value = item.id;
+        searchInput.value = item.name;
+        dropdown.classList.add('hidden');
+      });
+      dropdown.appendChild(el);
+    });
+    dropdown.classList.remove('hidden');
+  }
+
+  searchInput.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    hiddenInput.value = '';
+    debounceTimer = setTimeout(() => fetchSuggestions(this.value), 200);
+  });
+  searchInput.addEventListener('focus', function() { fetchSuggestions(this.value); });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.suggest-wrapper')) dropdown.classList.add('hidden');
+  });
+})();
+</script>
+{% endblock %}

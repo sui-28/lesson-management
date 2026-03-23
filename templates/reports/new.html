@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}報告書提出{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>報告書提出</h1>
+</div>
+
+<div class="card form-card">
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('report_new') }}" id="reportForm">
+
+      <!-- 担当先生（管理者は選択可・先生は固定） -->
+      <div class="form-group">
+        <label for="teacher_id">担当先生 <span class="required">*</span></label>
+        {% if current_user.is_admin %}
+        <select id="teacher_id" name="teacher_id" class="form-control" required>
+          <option value="">選択してください</option>
+          {% for t in teachers %}
+          <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <input type="text" class="form-control" value="{{ current_teacher.name if current_teacher else '—' }}" readonly>
+        <input type="hidden" name="teacher_id" value="{{ current_teacher.id if current_teacher else '' }}">
+        {% endif %}
+      </div>
+
+      <!-- 生徒名（サジェスト付き） -->
+      <div class="form-group">
+        <label for="student_search">生徒名 <span class="required">*</span></label>
+        <div class="suggest-wrapper">
+          <input type="text" id="student_search" class="form-control"
+                 placeholder="生徒名を入力して検索..." autocomplete="off"
+                 {% if not current_user.is_admin and not current_teacher %}disabled{% endif %}>
+          <input type="hidden" id="student_id" name="student_id">
+          <div id="suggest-dropdown" class="suggest-dropdown hidden"></div>
+        </div>
+        <p class="form-hint">
+          {% if current_user.is_teacher %}担当生徒が優先表示されます。{% endif %}
+          担当外の生徒も選択できます。
+        </p>
+      </div>
+
+      <!-- 授業実施日 -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="lesson_date">授業実施日 <span class="required">*</span></label>
+          <input type="date" id="lesson_date" name="lesson_date" class="form-control"
+                 value="{{ request.form.get('lesson_date', '') }}" required>
+        </div>
+        <!-- 授業時間 -->
+        <div class="form-group">
+          <label for="lesson_duration">授業時間 <span class="required">*</span></label>
+          <select id="lesson_duration" name="lesson_duration" class="form-control" required>
+            <option value="">選択してください</option>
+            {% for d in ['60分', '90分', '120分', '45分', '30分'] %}
+            <option value="{{ d }}" {% if request.form.get('lesson_duration') == d %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- 授業内容・進捗メモ -->
+      <div class="form-group">
+        <label for="content">授業内容・進捗メモ <span class="optional">（任意）</span></label>
+        <textarea id="content" name="content" class="form-control" rows="4"
+                  placeholder="今日の授業内容や生徒の理解度、進捗状況などを記入してください">{{ request.form.get('content', '') }}</textarea>
+      </div>
+
+      <!-- 次回の授業予定 -->
+      <div class="form-group">
+        <label for="next_plan">次回の授業予定 <span class="optional">（任意）</span></label>
+        <textarea id="next_plan" name="next_plan" class="form-control" rows="2"
+                  placeholder="次回取り組む予定の内容">{{ request.form.get('next_plan', '') }}</textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">提出する</button>
+        <a href="{{ url_for('report_list') }}" class="btn btn-ghost">キャンセル</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const teacherSelect = document.getElementById('teacher_id');
+  const searchInput   = document.getElementById('student_search');
+  const hiddenInput   = document.getElementById('student_id');
+  const dropdown      = document.getElementById('suggest-dropdown');
+
+  function getTeacherId() {
+    if (teacherSelect) return teacherSelect.value;
+    // 先生ロール: hidden input から
+    const h = document.querySelector('input[name="teacher_id"]');
+    return h ? h.value : '';
+  }
+
+  let debounceTimer = null;
+
+  function fetchSuggestions(q) {
+    const tid = getTeacherId();
+    const url = `/api/students?q=${encodeURIComponent(q)}&teacher_id=${tid}`;
+    fetch(url)
+      .then(r => r.json())
+      .then(data => renderDropdown(data));
+  }
+
+  function renderDropdown(items) {
+    dropdown.innerHTML = '';
+    if (!items.length) {
+      dropdown.classList.add('hidden');
+      return;
+    }
+
+    let lastGroup = null;
+    items.forEach(item => {
+      // グループヘッダー
+      if (item.assigned !== null) {
+        const group = item.assigned ? 'assigned' : 'other';
+        if (group !== lastGroup) {
+          const header = document.createElement('div');
+          header.className = 'suggest-group-header';
+          header.textContent = item.assigned ? '担当生徒' : '担当外';
+          dropdown.appendChild(header);
+          lastGroup = group;
+        }
+      }
+
+      const el = document.createElement('div');
+      el.className = 'suggest-item' + (item.assigned ? ' assigned' : '');
+      el.textContent = item.name;
+      el.dataset.id = item.id;
+      el.addEventListener('mousedown', () => {
+        hiddenInput.value = item.id;
+        searchInput.value = item.name;
+        dropdown.classList.add('hidden');
+      });
+      dropdown.appendChild(el);
+    });
+
+    dropdown.classList.remove('hidden');
+  }
+
+  searchInput && searchInput.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    hiddenInput.value = '';
+    debounceTimer = setTimeout(() => fetchSuggestions(this.value), 200);
+  });
+
+  searchInput && searchInput.addEventListener('focus', function() {
+    fetchSuggestions(this.value);
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.suggest-wrapper')) {
+      dropdown.classList.add('hidden');
+    }
+  });
+
+  // 先生変更時に生徒リストをリセット
+  teacherSelect && teacherSelect.addEventListener('change', function() {
+    searchInput.value = '';
+    hiddenInput.value = '';
+    dropdown.classList.add('hidden');
+  });
+})();
+</script>
+{% endblock %}

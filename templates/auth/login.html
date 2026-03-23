@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}ログイン{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-icon">📚</div>
+      <h1>授業管理システム</h1>
+      <p>個別指導塾 管理ポータル</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}" class="login-form">
+      <div class="form-group">
+        <label for="username">ユーザー名</label>
+        <input type="text" id="username" name="username" class="form-control"
+               placeholder="ユーザー名を入力" required autofocus>
+      </div>
+      <div class="form-group">
+        <label for="password">パスワード</label>
+        <input type="password" id="password" name="password" class="form-control"
+               placeholder="パスワードを入力" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">ログイン</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
