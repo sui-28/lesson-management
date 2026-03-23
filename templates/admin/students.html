@@ -7,40 +7,42 @@
 </div>
 
 <div class="two-col-layout">
-  <!-- メンティー一覧 -->
+  <!-- メンティー一覧（契約回数一括編集） -->
   <div class="card">
     <div class="card-header"><h2>登録済みメンティー</h2></div>
     <div class="card-body">
       {% if students %}
-      <table class="table">
-        <thead>
-          <tr><th>名前</th><th>担当メンター数</th><th>実施済み</th><th>契約回数</th><th></th></tr>
-        </thead>
-        <tbody>
-          {% for s in students %}
-          <tr>
-            <td>{{ s.name }}</td>
-            <td>{{ s.teachers|length }}</td>
-            <td>{{ s.reports|length }} 回</td>
-            <td>
-              <form method="POST" action="{{ url_for('admin_student_set_total', sid=s.id) }}"
-                    class="inline-form">
-                <input type="number" name="total_lessons" class="form-control form-control-sm"
-                       style="width:80px; display:inline-block"
+      <form method="POST" action="{{ url_for('admin_students_save_totals') }}">
+        <table class="table">
+          <thead>
+            <tr><th>名前</th><th>担当メンター数</th><th>実施済み</th><th>契約回数</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td>{{ s.name }}</td>
+              <td>{{ s.teachers|length }}</td>
+              <td>{{ s.reports|length }} 回</td>
+              <td>
+                <input type="number" name="total_{{ s.id }}"
+                       class="form-control form-control-sm"
+                       style="width:80px"
                        value="{{ s.total_lessons or '' }}" min="1" placeholder="—">
-                <button type="submit" class="btn btn-sm btn-outline">設定</button>
-              </form>
-            </td>
-            <td>
-              <form method="POST" action="{{ url_for('admin_student_delete', sid=s.id) }}"
-                    onsubmit="return confirm('「{{ s.name }}」を削除しますか？')">
-                <button type="submit" class="btn btn-sm btn-danger">削除</button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('admin_student_delete', sid=s.id) }}"
+                      onsubmit="return confirm('「{{ s.name }}」を削除しますか？')">
+                  <button type="submit" class="btn btn-sm btn-danger">削除</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div style="margin-top: 12px;">
+          <button type="submit" class="btn btn-primary">契約回数を保存</button>
+        </div>
+      </form>
       {% else %}
       <p class="text-muted text-center">メンティーが登録されていません。</p>
       {% endif %}

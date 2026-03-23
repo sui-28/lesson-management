@@ -26,31 +26,6 @@
   </div>
 </div>
 
-<!-- 月別授業回数 -->
-<div class="card mb-4">
-  <div class="card-header">
-    <h2>月別授業回数</h2>
-  </div>
-  <div class="card-body">
-    {% if monthly_stats %}
-    <div class="chart-bar-wrapper">
-      {% set max_cnt = monthly_stats|map(attribute=1)|max %}
-      {% for month, cnt in monthly_stats %}
-      <div class="chart-bar-group">
-        <div class="chart-bar-col">
-          <span class="chart-bar-value">{{ cnt }}</span>
-          <div class="chart-bar-fill" style="height: {{ (cnt / max_cnt * 120)|int }}px"></div>
-        </div>
-        <div class="chart-bar-label">{{ month }}</div>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p class="text-muted text-center">データがありません。</p>
-    {% endif %}
-  </div>
-</div>
-
 <!-- メンティー別授業回数・残り回数 -->
 <div class="card mb-4">
   <div class="card-header">

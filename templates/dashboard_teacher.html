@@ -15,17 +15,6 @@
 </div>
 {% else %}
 
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-number">{{ my_reports_count }}</div>
-    <div class="stat-label">授業回数（合計）</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-number">{{ my_students_count }}</div>
-    <div class="stat-label">担当メンティー数</div>
-  </div>
-</div>
-
 <!-- 月別授業回数 -->
 <div class="card mb-4">
   <div class="card-header">
@@ -47,6 +36,36 @@
     </div>
     {% else %}
     <p class="text-muted text-center">データがありません。</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 最近の報告書 -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h2>最近の報告書</h2>
+    <a href="{{ url_for('report_list') }}" class="btn btn-sm btn-outline">すべて見る</a>
+  </div>
+  <div class="card-body">
+    {% if recent_reports %}
+    <table class="table">
+      <thead>
+        <tr><th>授業日</th><th>メンティー</th><th>授業時間</th><th>提出日時</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in recent_reports %}
+        <tr>
+          <td>{{ r.lesson_date }}</td>
+          <td>{{ r.student.name }}</td>
+          <td>{{ r.lesson_duration }}</td>
+          <td class="text-muted text-sm">{{ r.submitted_at.strftime('%m/%d %H:%M') }}</td>
+          <td><a href="{{ url_for('report_detail', report_id=r.id) }}" class="btn btn-sm btn-outline">詳細</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-center">報告書がまだありません。</p>
     {% endif %}
   </div>
 </div>
@@ -92,34 +111,17 @@
   </div>
 </div>
 
-<!-- 最近の報告書 -->
-<div class="card">
-  <div class="card-header">
-    <h2>最近の報告書</h2>
-    <a href="{{ url_for('report_list') }}" class="btn btn-sm btn-outline">すべて見る</a>
+<!-- 授業回数サマリー -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-number">{{ my_reports_count }}</div>
+    <div class="stat-label">授業回数（合計）</div>
   </div>
-  <div class="card-body">
-    {% if recent_reports %}
-    <table class="table">
-      <thead>
-        <tr><th>授業日</th><th>メンティー</th><th>授業時間</th><th>提出日時</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for r in recent_reports %}
-        <tr>
-          <td>{{ r.lesson_date }}</td>
-          <td>{{ r.student.name }}</td>
-          <td>{{ r.lesson_duration }}</td>
-          <td class="text-muted text-sm">{{ r.submitted_at.strftime('%m/%d %H:%M') }}</td>
-          <td><a href="{{ url_for('report_detail', report_id=r.id) }}" class="btn btn-sm btn-outline">詳細</a></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p class="text-muted text-center">報告書がまだありません。</p>
-    {% endif %}
+  <div class="stat-card">
+    <div class="stat-number">{{ my_students_count }}</div>
+    <div class="stat-label">担当メンティー数</div>
   </div>
 </div>
+
 {% endif %}
 {% endblock %}

@@ -558,19 +558,19 @@ def admin_student_delete(sid):
     return redirect(url_for("admin_students"))
 
 
-@app.route("/admin/students/<int:sid>/set_total", methods=["POST"])
+@app.route("/admin/students/save_totals", methods=["POST"])
 @login_required
 @admin_required
-def admin_student_set_total(sid):
-    """メンティーの総授業回数を設定"""
+def admin_students_save_totals():
+    """全メンティーの契約回数を一括保存"""
     db = SessionLocal()
     try:
-        student = db.get(Student, sid)
-        if student:
-            val = request.form.get("total_lessons", "").strip()
+        students = db.query(Student).all()
+        for student in students:
+            val = request.form.get(f"total_{student.id}", "").strip()
             student.total_lessons = int(val) if val.isdigit() else None
-            db.commit()
-            flash(f"「{student.name}」の総授業回数を更新しました。", "success")
+        db.commit()
+        flash("契約回数を保存しました。", "success")
     finally:
         db.close()
     return redirect(url_for("admin_students"))
@@ -599,6 +599,8 @@ def admin_import():
             for row in reader:
                 mentor_name = (row.get("メンター名") or row.get("mentor") or "").strip()
                 mentee_name = (row.get("メンティー名") or row.get("mentee") or "").strip()
+                total_raw = (row.get("契約回数") or "").strip()
+                total_lessons = int(total_raw) if total_raw.isdigit() else None
                 if not mentor_name or not mentee_name:
                     continue
 
@@ -613,10 +615,12 @@ def admin_import():
                 # メンティー取得 or 作成
                 student = db.query(Student).filter_by(name=mentee_name).first()
                 if not student:
-                    student = Student(name=mentee_name)
+                    student = Student(name=mentee_name, total_lessons=total_lessons)
                     db.add(student)
                     db.flush()
                     created_mentees += 1
+                elif total_lessons is not None:
+                    student.total_lessons = total_lessons
 
                 # 担当割当
                 if student not in teacher.students:
