@@ -98,7 +98,7 @@ html, body {
 .dropdown { position: relative; }
 .dropdown-toggle { cursor: pointer; }
 .dropdown-menu {
-  display: none;
+  display: block;
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
@@ -109,8 +109,19 @@ html, body {
   box-shadow: var(--shadow-md);
   padding: 4px;
   z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* ホバーを外した後0.4秒表示を維持してから消える */
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  transition-delay: 0.4s;
 }
-.dropdown:hover .dropdown-menu { display: block; }
+.dropdown:hover .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s; /* 表示はすぐ */
+}
 .dropdown-item {
   display: flex;
   align-items: center;
