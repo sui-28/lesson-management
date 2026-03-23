@@ -50,8 +50,8 @@ class Teacher(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="teacher")
-    students = relationship("Student", secondary=assignment_table, back_populates="teachers")
-    reports = relationship("Report", back_populates="teacher")
+    students = relationship("Student", secondary=assignment_table, back_populates="teachers", lazy="selectin")
+    reports = relationship("Report", back_populates="teacher", lazy="selectin")
 
 
 class Student(Base):
@@ -62,8 +62,8 @@ class Student(Base):
     name = Column(String(100), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    teachers = relationship("Teacher", secondary=assignment_table, back_populates="students")
-    reports = relationship("Report", back_populates="student")
+    teachers = relationship("Teacher", secondary=assignment_table, back_populates="students", lazy="selectin")
+    reports = relationship("Report", back_populates="student", lazy="selectin")
 
 
 class Report(Base):
@@ -81,8 +81,8 @@ class Report(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
                         onupdate=lambda: datetime.now(timezone.utc))
 
-    teacher = relationship("Teacher", back_populates="reports")
-    student = relationship("Student", back_populates="reports")
+    teacher = relationship("Teacher", back_populates="reports", lazy="selectin")
+    student = relationship("Student", back_populates="reports", lazy="selectin")
 
 
 class Notification(Base):
