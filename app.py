@@ -766,6 +766,8 @@ def init_db():
         db.close()
 
 
+# 起動時に自動でDB初期化（gunicorn経由でも動作）
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True, port=5050)
