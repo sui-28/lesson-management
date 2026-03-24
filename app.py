@@ -155,8 +155,8 @@ def dashboard():
                 notifications=notifications,
             )
         else:
-            # 先生: 自分の統計
-            teacher = current_user.teacher
+            # 先生: 自分の統計（セッション内で再取得してリレーションを使用可能に）
+            teacher = db.query(Teacher).filter_by(user_id=current_user.id).first()
             if not teacher:
                 flash("先生情報が登録されていません。管理者に連絡してください。", "warning")
                 return render_template("dashboard_teacher.html",
@@ -221,7 +221,7 @@ def report_list():
         notifications = get_unread_notifications(db)
         query = db.query(Report).order_by(Report.lesson_date.desc(), Report.submitted_at.desc())
         if current_user.is_teacher:
-            teacher = current_user.teacher
+            teacher = db.query(Teacher).filter_by(user_id=current_user.id).first()
             if teacher:
                 query = query.filter(Report.teacher_id == teacher.id)
             else:
@@ -281,7 +281,7 @@ def report_new():
 
             # 先生は自分以外の teacher_id を指定できない
             if current_user.is_teacher:
-                teacher = current_user.teacher
+                teacher = db.query(Teacher).filter_by(user_id=current_user.id).first()
                 if not teacher or str(teacher.id) != str(teacher_id):
                     errors.append("担当先生を変更する権限がありません。")
                     teacher_id = teacher.id if teacher else None
@@ -305,7 +305,7 @@ def report_new():
 
         teachers = db.query(Teacher).order_by(Teacher.name).all()
         students = db.query(Student).order_by(Student.name).all()
-        current_teacher = current_user.teacher if current_user.is_teacher else None
+        current_teacher = db.query(Teacher).filter_by(user_id=current_user.id).first() if current_user.is_teacher else None
 
         return render_template("reports/new.html",
                                teachers=teachers,
@@ -327,7 +327,7 @@ def report_detail(report_id):
             abort(404)
         # 先生は自分の報告書のみ
         if current_user.is_teacher:
-            teacher = current_user.teacher
+            teacher = db.query(Teacher).filter_by(user_id=current_user.id).first()
             if not teacher or report.teacher_id != teacher.id:
                 abort(403)
         return render_template("reports/detail.html", report=report,
@@ -346,7 +346,7 @@ def report_edit(report_id):
         if not report:
             abort(404)
         if current_user.is_teacher:
-            teacher = current_user.teacher
+            teacher = db.query(Teacher).filter_by(user_id=current_user.id).first()
             if not teacher or report.teacher_id != teacher.id:
                 abort(403)
 
