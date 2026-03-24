@@ -3,7 +3,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from sqlalchemy import create_engine, func, select as sa_select, text, inspect as sa_inspect
+from sqlalchemy import create_engine, func, select as sa_select, text
 from sqlalchemy.orm import sessionmaker, joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import Base, User, Teacher, Student, Report, Notification, assignment_table
@@ -915,15 +915,25 @@ def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     Base.metadata.create_all(engine)
 
-    # マイグレーション: モデルに存在するがDBにないカラムを追加
+    # マイグレーション: total_lessons カラムがなければ追加
     try:
-        inspector = sa_inspect(engine)
-        existing_cols = [c["name"] for c in inspector.get_columns("student")]
-        if "total_lessons" not in existing_cols:
-            with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE student ADD COLUMN total_lessons INTEGER"))
-                conn.commit()
-            print("Migration: student.total_lessons カラムを追加しました")
+        with engine.connect() as conn:
+            if DATABASE_URL.startswith("postgresql"):
+                result = conn.execute(text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name='student' AND column_name='total_lessons'"
+                ))
+                if not result.fetchone():
+                    conn.execute(text("ALTER TABLE student ADD COLUMN total_lessons INTEGER"))
+                    conn.commit()
+                    print("Migration: student.total_lessons カラムを追加しました")
+            else:
+                result = conn.execute(text("PRAGMA table_info(student)"))
+                cols = [row[1] for row in result.fetchall()]
+                if "total_lessons" not in cols:
+                    conn.execute(text("ALTER TABLE student ADD COLUMN total_lessons INTEGER"))
+                    conn.commit()
+                    print("Migration: student.total_lessons カラムを追加しました")
     except Exception as e:
         print(f"Migration warning: {e}")
     db = SessionLocal()
