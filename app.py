@@ -3,10 +3,10 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, select as sa_select
 from sqlalchemy.orm import sessionmaker
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import Base, User, Teacher, Student, Report, Notification
+from models import Base, User, Teacher, Student, Report, Notification, assignment_table
 
 # ── アプリケーション設定 ──────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -641,8 +641,7 @@ def admin_import():
                 elif total_lessons is not None:
                     student.total_lessons = total_lessons
 
-                # 担当割当（assignment_tableを直接確認してからappend）
-                from sqlalchemy import select as sa_select
+                # 担当割当（assignment_tableを直接確認してからINSERT）
                 exists = db.execute(
                     sa_select(assignment_table).where(
                         assignment_table.c.teacher_id == teacher.id,
