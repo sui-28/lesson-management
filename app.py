@@ -24,7 +24,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 # PostgreSQL（Neon等）はSSL必須 - URLにsslmodeが未指定の場合は追加
 if DATABASE_URL.startswith("postgresql://") and "sslmode" not in DATABASE_URL:
     DATABASE_URL += "?sslmode=require"
-engine = create_engine(DATABASE_URL, echo=False)
+engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 
 
