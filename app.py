@@ -489,6 +489,47 @@ def admin_teacher_new():
     return redirect(url_for("admin_teachers"))
 
 
+@app.route("/admin/teachers/<int:tid>/create_account", methods=["POST"])
+@login_required
+@admin_required
+def admin_teacher_create_account(tid):
+    """CSVでインポートしたメンターにログインアカウントを紐付ける"""
+    db = SessionLocal()
+    try:
+        teacher = db.get(Teacher, tid)
+        if not teacher:
+            flash("メンターが見つかりません。", "danger")
+            return redirect(url_for("admin_teachers"))
+        if teacher.user_id:
+            flash("すでにアカウントが存在します。", "warning")
+            return redirect(url_for("admin_teachers"))
+
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        if not username or not password:
+            flash("ユーザー名とパスワードは必須です。", "danger")
+            return redirect(url_for("admin_teachers"))
+
+        existing = db.query(User).filter_by(username=username).first()
+        if existing:
+            flash(f"ユーザー名「{username}」はすでに使用されています。", "danger")
+            return redirect(url_for("admin_teachers"))
+
+        user = User(
+            username=username,
+            password_hash=generate_password_hash(password),
+            role="teacher",
+        )
+        db.add(user)
+        db.flush()
+        teacher.user_id = user.id
+        db.commit()
+        flash(f"「{teacher.name}」のアカウントを作成しました。", "success")
+    finally:
+        db.close()
+    return redirect(url_for("admin_teachers"))
+
+
 @app.route("/admin/teachers/<int:tid>/delete", methods=["POST"])
 @login_required
 @admin_required

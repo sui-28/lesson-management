@@ -14,17 +14,30 @@
       {% if teachers %}
       <table class="table">
         <thead>
-          <tr><th>名前</th><th>ユーザー名</th><th>担当メンティー数</th><th></th></tr>
+          <tr><th>名前</th><th>ログインアカウント</th><th>担当メンティー数</th><th></th></tr>
         </thead>
         <tbody>
           {% for t in teachers %}
           <tr>
             <td>{{ t.name }}</td>
-            <td>{{ t.user.username if t.user else '—' }}</td>
-            <td>{{ t.students|length }}</td>
             <td>
+              {% if t.user %}
+                <span class="badge badge-green">{{ t.user.username }}</span>
+              {% else %}
+                <span class="text-muted">未設定</span>
+              {% endif %}
+            </td>
+            <td>{{ t.students|length }}</td>
+            <td style="white-space:nowrap">
+              {% if not t.user %}
+              <button class="btn btn-sm btn-outline"
+                      onclick="openAccountModal({{ t.id }}, '{{ t.name }}')">
+                アカウント作成
+              </button>
+              {% endif %}
               <form method="POST" action="{{ url_for('admin_teacher_delete', tid=t.id) }}"
-                    onsubmit="return confirm('「{{ t.name }}」を削除しますか？関連する授業記録はすべて削除されます。')">
+                    onsubmit="return confirm('「{{ t.name }}」を削除しますか？関連する授業記録はすべて削除されます。')"
+                    style="display:inline">
                 <button type="submit" class="btn btn-sm btn-danger">削除</button>
               </form>
             </td>
@@ -60,4 +73,42 @@
     </div>
   </div>
 </div>
+
+<!-- アカウント作成モーダル -->
+<div id="accountModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:8px; padding:24px; width:360px; max-width:90%">
+    <h3 style="margin:0 0 16px" id="modalTitle">アカウント作成</h3>
+    <form method="POST" id="accountForm">
+      <div class="form-group">
+        <label>ユーザー名 <span class="required">*</span></label>
+        <input type="text" name="username" class="form-control" placeholder="ログイン用ユーザー名" required>
+      </div>
+      <div class="form-group">
+        <label>パスワード <span class="required">*</span></label>
+        <input type="password" name="password" class="form-control" placeholder="初期パスワード" required>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:16px">
+        <button type="submit" class="btn btn-primary" style="flex:1">作成する</button>
+        <button type="button" class="btn btn-ghost" onclick="closeAccountModal()" style="flex:1">キャンセル</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openAccountModal(tid, name) {
+  document.getElementById('modalTitle').textContent = '「' + name + '」のアカウント作成';
+  document.getElementById('accountForm').action = '/admin/teachers/' + tid + '/create_account';
+  const modal = document.getElementById('accountModal');
+  modal.style.display = 'flex';
+}
+function closeAccountModal() {
+  document.getElementById('accountModal').style.display = 'none';
+}
+document.getElementById('accountModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAccountModal();
+});
+</script>
 {% endblock %}
