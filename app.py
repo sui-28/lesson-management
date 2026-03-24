@@ -109,6 +109,7 @@ def logout():
 def dashboard():
     db = SessionLocal()
     try:
+        import traceback as _tb
         notifications = get_unread_notifications(db)
         if current_user.is_admin:
             # 管理者: 全体統計
@@ -208,6 +209,9 @@ def dashboard():
                 recent_reports=recent_reports,
                 notifications=notifications,
             )
+    except Exception as _e:
+        app.logger.error("=== DASHBOARD ERROR ===\n" + _tb.format_exc())
+        raise
     finally:
         db.close()
 
