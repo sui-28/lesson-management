@@ -32,12 +32,9 @@
                  value="{{ report.lesson_date }}" required>
         </div>
         <div class="form-group">
-          <label for="lesson_duration">授業時間 <span class="required">*</span></label>
-          <select id="lesson_duration" name="lesson_duration" class="form-control" required>
-            {% for d in ['60分', '90分', '120分', '45分', '30分'] %}
-            <option value="{{ d }}" {% if report.lesson_duration == d %}selected{% endif %}>{{ d }}</option>
-            {% endfor %}
-          </select>
+          <label>授業時間</label>
+          <input type="text" class="form-control" value="45分" readonly>
+          <input type="hidden" name="lesson_duration" value="45分">
         </div>
       </div>
 

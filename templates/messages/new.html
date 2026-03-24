@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}管理者へ連絡{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>管理者へ連絡</h1>
+</div>
+
+<div class="card form-card">
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('message_new') }}">
+      <div class="form-group">
+        <label for="content">メッセージ <span class="required">*</span></label>
+        <textarea id="content" name="content" class="form-control" rows="6"
+                  placeholder="管理者への連絡事項を入力してください" required>{{ request.form.get('content', '') }}</textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">送信する</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">キャンセル</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -49,15 +49,11 @@
           <input type="date" id="lesson_date" name="lesson_date" class="form-control"
                  value="{{ request.form.get('lesson_date', '') }}" required>
         </div>
-        <!-- 授業時間 -->
+        <!-- 授業時間（45分固定） -->
         <div class="form-group">
-          <label for="lesson_duration">授業時間 <span class="required">*</span></label>
-          <select id="lesson_duration" name="lesson_duration" class="form-control" required>
-            <option value="">選択してください</option>
-            {% for d in ['60分', '90分', '120分', '45分', '30分'] %}
-            <option value="{{ d }}" {% if request.form.get('lesson_duration') == d %}selected{% endif %}>{{ d }}</option>
-            {% endfor %}
-          </select>
+          <label>授業時間</label>
+          <input type="text" class="form-control" value="45分" readonly>
+          <input type="hidden" name="lesson_duration" value="45分">
         </div>
       </div>
 

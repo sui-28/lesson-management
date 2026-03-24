@@ -6,7 +6,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from sqlalchemy import create_engine, func, select as sa_select, text
 from sqlalchemy.orm import sessionmaker, joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import Base, User, Teacher, Student, Report, Notification, assignment_table
+from models import Base, User, Teacher, Student, Report, Notification, Message, assignment_table
 
 # ── アプリケーション設定 ──────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -137,6 +137,20 @@ def dashboard():
                 .all()
             )
 
+            # 今月のメンター別授業実施回数
+            this_month = datetime.now(timezone.utc).strftime("%Y-%m")
+            teacher_monthly = (
+                db.query(Teacher, func.count(Report.id).label("cnt"))
+                .outerjoin(Report, (Report.teacher_id == Teacher.id) &
+                           (func.substr(Report.lesson_date, 1, 7) == this_month))
+                .group_by(Teacher.id)
+                .order_by(func.count(Report.id).desc())
+                .all()
+            )
+
+            # 未読メッセージ数
+            unread_messages = db.query(func.count(Message.id)).filter_by(is_read=False).scalar()
+
             # 最近の報告書
             recent_reports = (
                 db.query(Report)
@@ -151,6 +165,9 @@ def dashboard():
                 total_students=total_students,
                 monthly_stats=monthly_stats,
                 student_stats=student_stats,
+                teacher_monthly=teacher_monthly,
+                this_month=this_month,
+                unread_messages=unread_messages,
                 recent_reports=recent_reports,
                 notifications=notifications,
             )
@@ -915,7 +932,8 @@ def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     Base.metadata.create_all(engine)
 
-    # マイグレーション: total_lessons カラムがなければ追加
+    # マイグレーション: messageテーブルが存在しなければ作成（create_allで自動作成されるため念のため）
+    # total_lessons カラムがなければ追加
     try:
         with engine.connect() as conn:
             if DATABASE_URL.startswith("postgresql"):
@@ -948,6 +966,51 @@ def init_db():
             db.add(admin)
             db.commit()
             print("初期管理者アカウントを作成しました: admin / admin1234")
+    finally:
+        db.close()
+
+
+# ── メッセージ ────────────────────────────────────────────────
+@app.route("/messages/new", methods=["GET", "POST"])
+@login_required
+def message_new():
+    """メンター → 管理者へのメッセージ送信"""
+    if not current_user.is_teacher:
+        abort(403)
+    db = SessionLocal()
+    try:
+        notifications = get_unread_notifications(db)
+        if request.method == "POST":
+            content = request.form.get("content", "").strip()
+            if not content:
+                flash("メッセージを入力してください。", "danger")
+            else:
+                teacher = db.query(Teacher).filter_by(user_id=current_user.id).first()
+                if teacher:
+                    msg = Message(teacher_id=teacher.id, content=content)
+                    db.add(msg)
+                    db.commit()
+                    flash("管理者にメッセージを送信しました。", "success")
+                    return redirect(url_for("dashboard"))
+        return render_template("messages/new.html", notifications=notifications)
+    finally:
+        db.close()
+
+
+@app.route("/admin/messages")
+@login_required
+@admin_required
+def admin_messages():
+    """管理者: メッセージ一覧"""
+    db = SessionLocal()
+    try:
+        notifications = get_unread_notifications(db)
+        messages = db.query(Message).order_by(Message.sent_at.desc()).all()
+        # 未読をすべて既読に
+        db.query(Message).filter_by(is_read=False).update({"is_read": True})
+        db.commit()
+        return render_template("admin/messages.html",
+                               messages=messages, notifications=notifications)
     finally:
         db.close()
 

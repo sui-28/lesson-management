@@ -24,6 +24,38 @@
     <div class="stat-number">{{ total_students }}</div>
     <div class="stat-label">メンティー数</div>
   </div>
+  {% if unread_messages > 0 %}
+  <div class="stat-card" style="cursor:pointer" onclick="location.href='{{ url_for('admin_messages') }}'">
+    <div class="stat-number" style="color:var(--danger)">{{ unread_messages }}</div>
+    <div class="stat-label">未読メッセージ</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 今月のメンター別授業実施回数 -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h2>今月の授業実施回数（{{ this_month }}）</h2>
+  </div>
+  <div class="card-body">
+    {% if teacher_monthly %}
+    <table class="table">
+      <thead>
+        <tr><th>メンター名</th><th>今月の授業回数</th></tr>
+      </thead>
+      <tbody>
+        {% for teacher, cnt in teacher_monthly %}
+        <tr>
+          <td>{{ teacher.name }}</td>
+          <td><strong>{{ cnt }}</strong> 回</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-center">メンターが登録されていません。</p>
+    {% endif %}
+  </div>
 </div>
 
 <!-- メンティー別授業回数・残り回数 -->

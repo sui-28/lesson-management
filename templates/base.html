@@ -20,6 +20,11 @@
       <a href="{{ url_for('report_new') }}" class="nav-link btn-primary-nav">
         ＋ 報告書提出
       </a>
+      {% if current_user.is_teacher %}
+      <a href="{{ url_for('message_new') }}" class="nav-link {% if request.endpoint == 'message_new' %}active{% endif %}">
+        管理者へ連絡
+      </a>
+      {% endif %}
       {% if current_user.is_admin %}
       <div class="dropdown">
         <button class="nav-link dropdown-toggle {% if 'admin' in request.endpoint %}active{% endif %}">
@@ -37,6 +42,9 @@
             {% if notifications|length > 0 %}
             <span class="badge">{{ notifications|length }}</span>
             {% endif %}
+          </a>
+          <a href="{{ url_for('admin_messages') }}" class="dropdown-item">
+            メッセージ確認
           </a>
         </div>
       </div>

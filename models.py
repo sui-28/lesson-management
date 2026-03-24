@@ -52,6 +52,7 @@ class Teacher(Base):
     user = relationship("User", back_populates="teacher")
     students = relationship("Student", secondary=assignment_table, back_populates="teachers", lazy="selectin")
     reports = relationship("Report", back_populates="teacher", lazy="selectin")
+    messages = relationship("Message", back_populates="teacher", lazy="selectin")
 
 
 class Student(Base):
@@ -75,7 +76,7 @@ class Report(Base):
     teacher_id = Column(Integer, ForeignKey("teacher.id"), nullable=False)
     student_id = Column(Integer, ForeignKey("student.id"), nullable=False)
     lesson_date = Column(String(10), nullable=False)   # YYYY-MM-DD
-    lesson_duration = Column(String(50), nullable=False)  # 例: "60分", "90分"
+    lesson_duration = Column(String(50), nullable=False)
     content = Column(Text, nullable=True)
     next_plan = Column(Text, nullable=True)
     submitted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -84,6 +85,19 @@ class Report(Base):
 
     teacher = relationship("Teacher", back_populates="reports", lazy="selectin")
     student = relationship("Student", back_populates="reports", lazy="selectin")
+
+
+class Message(Base):
+    """メンター→管理者へのメッセージ"""
+    __tablename__ = "message"
+
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey("teacher.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    sent_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    teacher = relationship("Teacher", back_populates="messages", lazy="selectin")
 
 
 class Notification(Base):
