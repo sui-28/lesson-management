@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}報告書提出{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>報告書提出</h1>
+  <span class="text-muted text-sm">ログイン不要で提出できます</span>
+</div>
+
+<div class="card form-card">
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('public_submit') }}">
+
+      <!-- 担当メンター -->
+      <div class="form-group">
+        <label for="teacher_id">担当メンター <span class="required">*</span></label>
+        <select id="teacher_id" name="teacher_id" class="form-control" required>
+          <option value="">選択してください</option>
+          {% for t in teachers %}
+          <option value="{{ t.id }}" {% if request.form.get('teacher_id') == t.id|string %}selected{% endif %}>
+            {{ t.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- メンティー -->
+      <div class="form-group">
+        <label for="student_id">メンティー <span class="required">*</span></label>
+        <select id="student_id" name="student_id" class="form-control" required>
+          <option value="">選択してください</option>
+          {% for s in students %}
+          <option value="{{ s.id }}" {% if request.form.get('student_id') == s.id|string %}selected{% endif %}>
+            {{ s.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 授業実施日・授業時間 -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="lesson_date">授業実施日 <span class="required">*</span></label>
+          <input type="date" id="lesson_date" name="lesson_date" class="form-control"
+                 value="{{ request.form.get('lesson_date', '') }}" required>
+        </div>
+        <div class="form-group">
+          <label for="lesson_duration">授業時間 <span class="required">*</span></label>
+          <select id="lesson_duration" name="lesson_duration" class="form-control" required>
+            <option value="">選択してください</option>
+            {% for d in ['60分', '90分', '120分', '45分', '30分'] %}
+            <option value="{{ d }}" {% if request.form.get('lesson_duration') == d %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- 授業内容 -->
+      <div class="form-group">
+        <label for="content">授業内容・進捗メモ <span class="optional">（任意）</span></label>
+        <textarea id="content" name="content" class="form-control" rows="4"
+                  placeholder="今日の授業内容や理解度、進捗状況などを記入してください">{{ request.form.get('content', '') }}</textarea>
+      </div>
+
+      <!-- 次回の授業予定 -->
+      <div class="form-group">
+        <label for="next_plan">次回の授業予定 <span class="optional">（任意）</span></label>
+        <textarea id="next_plan" name="next_plan" class="form-control" rows="2"
+                  placeholder="次回取り組む予定の内容">{{ request.form.get('next_plan', '') }}</textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">提出する</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

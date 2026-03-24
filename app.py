@@ -590,13 +590,32 @@ def admin_import():
             return redirect(url_for("admin_import"))
 
         import csv, io
-        content = f.read().decode("utf-8-sig")
-        reader = csv.DictReader(io.StringIO(content))
+        raw = f.read()
+        # エンコーディング自動判定（UTF-8 BOM → UTF-8 → Shift-JIS の順で試行）
+        content = None
+        for enc in ("utf-8-sig", "utf-8", "cp932", "shift-jis"):
+            try:
+                content = raw.decode(enc)
+                break
+            except (UnicodeDecodeError, LookupError):
+                continue
+        if content is None:
+            flash("CSVのエンコーディングを判定できませんでした。UTF-8またはShift-JISで保存してください。", "danger")
+            return redirect(url_for("admin_import"))
+
+        # ヘッダーの空白・BOMを除去してDictReaderに渡す
+        reader_raw = csv.reader(io.StringIO(content))
+        rows_raw = list(reader_raw)
+        if not rows_raw:
+            flash("CSVが空です。", "danger")
+            return redirect(url_for("admin_import"))
+        headers = [h.strip() for h in rows_raw[0]]
+        rows = [dict(zip(headers, [c.strip() for c in row])) for row in rows_raw[1:]]
 
         db = SessionLocal()
         try:
             created_mentors = created_mentees = created_assignments = 0
-            for row in reader:
+            for row in rows:
                 mentor_name = (row.get("メンター名") or row.get("mentor") or "").strip()
                 mentee_name = (row.get("メンティー名") or row.get("mentee") or "").strip()
                 total_raw = (row.get("契約回数") or "").strip()
@@ -622,9 +641,18 @@ def admin_import():
                 elif total_lessons is not None:
                     student.total_lessons = total_lessons
 
-                # 担当割当
-                if student not in teacher.students:
-                    teacher.students.append(student)
+                # 担当割当（assignment_tableを直接確認してからappend）
+                from sqlalchemy import select as sa_select
+                exists = db.execute(
+                    sa_select(assignment_table).where(
+                        assignment_table.c.teacher_id == teacher.id,
+                        assignment_table.c.student_id == student.id
+                    )
+                ).first()
+                if not exists:
+                    db.execute(assignment_table.insert().values(
+                        teacher_id=teacher.id, student_id=student.id
+                    ))
                     created_assignments += 1
 
             db.commit()
@@ -854,6 +882,55 @@ def init_db():
             db.add(admin)
             db.commit()
             print("初期管理者アカウントを作成しました: admin / admin1234")
+    finally:
+        db.close()
+
+
+# ── 公開: ログイン不要の報告書提出 ──────────────────────────
+@app.route("/submit", methods=["GET", "POST"])
+def public_submit():
+    """ログイン不要の報告書提出フォーム"""
+    db = SessionLocal()
+    try:
+        if request.method == "POST":
+            teacher_id = request.form.get("teacher_id")
+            student_id = request.form.get("student_id")
+            lesson_date = request.form.get("lesson_date", "").strip()
+            lesson_duration = request.form.get("lesson_duration", "").strip()
+            content = request.form.get("content", "").strip()
+            next_plan = request.form.get("next_plan", "").strip()
+
+            errors = []
+            if not lesson_date:
+                errors.append("授業実施日は必須です。")
+            if not lesson_duration:
+                errors.append("授業時間は必須です。")
+            if not student_id:
+                errors.append("メンティーを選択してください。")
+            if not teacher_id:
+                errors.append("担当メンターを選択してください。")
+
+            if errors:
+                for e in errors:
+                    flash(e, "danger")
+            else:
+                report = Report(
+                    teacher_id=int(teacher_id),
+                    student_id=int(student_id),
+                    lesson_date=lesson_date,
+                    lesson_duration=lesson_duration,
+                    content=content or None,
+                    next_plan=next_plan or None,
+                )
+                db.add(report)
+                db.commit()
+                flash("報告書を提出しました。", "success")
+                return redirect(url_for("public_submit"))
+
+        teachers = db.query(Teacher).order_by(Teacher.name).all()
+        students = db.query(Student).order_by(Student.name).all()
+        return render_template("reports/public_submit.html",
+                               teachers=teachers, students=students)
     finally:
         db.close()
 
