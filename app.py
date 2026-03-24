@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sqlalchemy import create_engine, func, select as sa_select
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import Base, User, Teacher, Student, Report, Notification, assignment_table
 
@@ -47,7 +47,11 @@ login_manager.login_message_category = "warning"
 def load_user(user_id):
     db = SessionLocal()
     try:
-        return db.get(User, int(user_id))
+        user = db.query(User).options(joinedload(User.teacher)).filter(
+            User.id == int(user_id)).first()
+        if user:
+            db.expunge_all()  # セッションから切り離しつつ読み込み済みデータを保持
+        return user
     finally:
         db.close()
 
