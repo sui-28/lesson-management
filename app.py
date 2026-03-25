@@ -24,7 +24,10 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 # PostgreSQL（Neon等）はSSL必須 - URLにsslmodeが未指定の場合は追加
 if DATABASE_URL.startswith("postgresql://") and "sslmode" not in DATABASE_URL:
     DATABASE_URL += "?sslmode=require"
-engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+_engine_kwargs = dict(echo=False, pool_pre_ping=True, pool_recycle=300)
+if DATABASE_URL.startswith("postgresql://"):
+    _engine_kwargs["connect_args"] = {"connect_timeout": 10}
+engine = create_engine(DATABASE_URL, **_engine_kwargs)
 SessionLocal = sessionmaker(bind=engine)
 
 
@@ -1064,11 +1067,18 @@ def public_submit():
         db.close()
 
 
-# 起動時に自動でDB初期化（gunicorn経由でも動作）
-try:
-    init_db()
-except Exception as e:
-    print(f"[WARNING] DB初期化エラー: {e}")
+# 最初のリクエスト時にDB初期化（起動時のNeon接続ハングを防ぐため遅延実行）
+_db_initialized = False
+
+@app.before_request
+def ensure_db_initialized():
+    global _db_initialized
+    if not _db_initialized:
+        try:
+            init_db()
+            _db_initialized = True
+        except Exception as e:
+            print(f"[WARNING] DB初期化エラー: {e}")
 
 if __name__ == "__main__":
     app.run(debug=True, port=5050)
