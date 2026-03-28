@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}スプレッドシート同期{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Googleスプレッドシート同期</h1>
+</div>
+
+{% if result %}
+<div class="alert alert-{{ 'success' if result.ok else 'danger' }}">
+  {{ result.msg }}
+  <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+</div>
+{% endif %}
+
+<div class="two-col-layout">
+  <!-- 同期実行 -->
+  <div class="card">
+    <div class="card-header"><h2>手動同期</h2></div>
+    <div class="card-body">
+      {% if configured %}
+      <p class="text-sm mb-3">スプレッドシートの内容をDBに反映します。既存データは上書きされません（新規追加のみ）。</p>
+      <form method="POST" action="{{ url_for('admin_sheets_sync') }}">
+        <button type="submit" class="btn btn-primary btn-block">今すぐ同期する</button>
+      </form>
+      {% else %}
+      <div class="alert alert-warning">
+        環境変数が未設定です。右の手順に従って設定してください。
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 設定手順 -->
+  <div class="card">
+    <div class="card-header"><h2>設定手順</h2></div>
+    <div class="card-body">
+      <p class="text-sm"><strong>Step 1: Google Service Account を作成</strong></p>
+      <ol class="text-sm" style="padding-left:1.2em; line-height:1.8">
+        <li><a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> でプロジェクトを作成</li>
+        <li>「APIとサービス」→「ライブラリ」→ <strong>Google Sheets API</strong> を有効化</li>
+        <li>「認証情報」→「サービスアカウント」を作成</li>
+        <li>作成したサービスアカウントの「キー」→「JSONキーを追加」でJSONをダウンロード</li>
+        <li>スプレッドシートをサービスアカウントのメールアドレスに <strong>閲覧権限</strong> で共有</li>
+      </ol>
+
+      <hr style="margin:12px 0">
+
+      <p class="text-sm"><strong>Step 2: Renderに環境変数を設定</strong></p>
+      <table class="table text-sm">
+        <thead><tr><th>変数名</th><th>値</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>GOOGLE_CREDENTIALS_JSON</code></td>
+            <td>ダウンロードしたJSONの内容をそのまま貼り付け</td>
+          </tr>
+          <tr>
+            <td><code>SPREADSHEET_ID</code></td>
+            <td>スプレッドシートURLの <code>/d/〇〇/</code> の部分</td>
+          </tr>
+          <tr>
+            <td><code>SYNC_TOKEN</code></td>
+            <td>自動同期用の任意のトークン文字列（例: abc123）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <hr style="margin:12px 0">
+
+      <p class="text-sm"><strong>Step 3: スプレッドシートのフォーマット（1シート目）</strong></p>
+      <pre class="code-block">メンター名,メンティー名,契約回数
+山田 太郎,鈴木 翔,20
+山田 太郎,高橋 美咲,15</pre>
+
+      <hr style="margin:12px 0">
+
+      <p class="text-sm"><strong>Step 4: 自動同期（1日1回）の設定</strong></p>
+      <p class="text-sm form-hint">
+        <a href="https://cron-job.org" target="_blank">cron-job.org</a>（無料）でPOSTリクエストを設定：<br>
+        URL: <code>{{ request.host_url }}api/sheets-sync?token=（SYNC_TOKENの値）</code><br>
+        Method: POST / 実行頻度: 毎日1回
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

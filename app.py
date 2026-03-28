@@ -410,6 +410,26 @@ def report_edit(report_id):
         db.close()
 
 
+@app.route("/reports/<int:report_id>/delete", methods=["POST"])
+@login_required
+def report_delete(report_id):
+    db = SessionLocal()
+    try:
+        report = db.get(Report, report_id)
+        if not report:
+            abort(404)
+        if current_user.is_teacher:
+            teacher = current_user.teacher
+            if not teacher or report.teacher_id != teacher.id:
+                abort(403)
+        db.delete(report)
+        db.commit()
+        flash("報告書を削除しました。", "success")
+    finally:
+        db.close()
+    return redirect(url_for("report_list"))
+
+
 # ── API: 生徒名サジェスト ─────────────────────────────────────
 @app.route("/api/students")
 @login_required
@@ -971,6 +991,116 @@ def init_db():
             print("初期管理者アカウントを作成しました: admin / admin1234")
     finally:
         db.close()
+
+
+# ── Google Sheets 同期 ────────────────────────────────────────
+def sync_from_google_sheets():
+    """Googleスプレッドシートからメンター・メンティー・担当関係を同期する"""
+    import json
+    import gspread
+    from google.oauth2.service_account import Credentials
+
+    creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+    spreadsheet_id = os.environ.get("SPREADSHEET_ID")
+
+    if not creds_json or not spreadsheet_id:
+        return False, "GOOGLE_CREDENTIALS_JSON または SPREADSHEET_ID が設定されていません。"
+
+    try:
+        creds_dict = json.loads(creds_json)
+        scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(spreadsheet_id)
+        ws = sh.get_worksheet(0)
+        rows = ws.get_all_records()
+    except Exception as e:
+        return False, f"スプレッドシートの読み込みに失敗しました: {e}"
+
+    db = SessionLocal()
+    try:
+        created_mentors = created_mentees = created_assignments = 0
+        for row in rows:
+            mentor_name = str(row.get("メンター名") or row.get("mentor") or "").strip()
+            mentee_name = str(row.get("メンティー名") or row.get("mentee") or "").strip()
+            total_raw = str(row.get("契約回数") or "").strip()
+            total_lessons = int(total_raw) if total_raw.isdigit() else None
+            if not mentor_name or not mentee_name:
+                continue
+
+            teacher = db.query(Teacher).filter_by(name=mentor_name).first()
+            if not teacher:
+                teacher = Teacher(name=mentor_name)
+                db.add(teacher)
+                db.flush()
+                created_mentors += 1
+
+            student = db.query(Student).filter_by(name=mentee_name).first()
+            if not student:
+                student = Student(name=mentee_name, total_lessons=total_lessons)
+                db.add(student)
+                db.flush()
+                created_mentees += 1
+            elif total_lessons is not None:
+                student.total_lessons = total_lessons
+
+            exists = db.execute(
+                sa_select(assignment_table).where(
+                    assignment_table.c.teacher_id == teacher.id,
+                    assignment_table.c.student_id == student.id
+                )
+            ).first()
+            if not exists:
+                db.execute(assignment_table.insert().values(
+                    teacher_id=teacher.id, student_id=student.id
+                ))
+                created_assignments += 1
+
+        db.commit()
+        msg = (f"同期完了: メンター {created_mentors}名追加、"
+               f"メンティー {created_mentees}名追加、"
+               f"担当 {created_assignments}件追加。")
+        return True, msg
+    except Exception as e:
+        db.rollback()
+        return False, f"DB更新エラー: {e}"
+    finally:
+        db.close()
+
+
+@app.route("/admin/sheets-sync", methods=["GET", "POST"])
+@login_required
+@admin_required
+def admin_sheets_sync():
+    """Googleスプレッドシート同期画面"""
+    db = SessionLocal()
+    try:
+        notifications = get_unread_notifications(db)
+    finally:
+        db.close()
+
+    result = None
+    if request.method == "POST":
+        ok, msg = sync_from_google_sheets()
+        result = {"ok": ok, "msg": msg}
+
+    configured = bool(os.environ.get("GOOGLE_CREDENTIALS_JSON") and
+                      os.environ.get("SPREADSHEET_ID"))
+    return render_template("admin/sheets_sync.html",
+                           notifications=notifications,
+                           configured=configured,
+                           result=result)
+
+
+@app.route("/api/sheets-sync", methods=["POST"])
+def api_sheets_sync():
+    """外部cronサービスから呼び出す自動同期エンドポイント"""
+    token = request.headers.get("X-Sync-Token") or request.args.get("token")
+    expected = os.environ.get("SYNC_TOKEN")
+    if not expected or token != expected:
+        abort(403)
+    ok, msg = sync_from_google_sheets()
+    return jsonify({"ok": ok, "message": msg}), (200 if ok else 500)
 
 
 # ── メッセージ ────────────────────────────────────────────────

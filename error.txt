@@ -1,46 +1,5 @@
-    ^
-  File "/opt/render/project/src/.venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/opt/render/project/src/.venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-    ~~~~~~~~~~~~~~~~~~~~~~~^
-        cursor, str_statement, effective_parameters, context
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/render/project/src/.venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
-    cursor.execute(statement, parameters)
-    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedColumn) column student.total_lessons does not exist
-LINE 1: ...t.id AS student_id, student.name AS student_name, student.to...
-                                                             ^
-[SQL: SELECT student.id AS student_id, student.name AS student_name, student.total_lessons AS student_total_lessons, student.created_at AS student_created_at, count(report.id) AS cnt 
-FROM student LEFT OUTER JOIN report ON report.student_id = student.id GROUP BY student.id ORDER BY student.name]
-(Background on this error at: https://sqlalche.me/e/20/f405)
-127.0.0.1 - - [24/Mar/2026:08:27:27 +0000] "GET / HTTP/1.1" 500 265 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3 Safari/605.1.15"
-==> Detected service running on port 10000
-==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
-==> Deploying...
-==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
 ==> Running 'gunicorn --config gunicorn.conf.py app:app'
-[2026-03-24 08:36:24 +0000] [45] [INFO] Starting gunicorn 25.1.0
-[2026-03-24 08:36:24 +0000] [45] [INFO] Listening at: http://0.0.0.0:10000 (45)
-[2026-03-24 08:36:24 +0000] [45] [INFO] Using worker: sync
-[2026-03-24 08:36:24 +0000] [45] [INFO] Control socket listening at /opt/render/project/src/gunicorn.ctl
-[2026-03-24 08:36:53 +0000] [57] [INFO] Handling signal: term
-[2026-03-24 08:36:53 +0000] [59] [INFO] Worker exiting (pid: 59)
-[2026-03-24 08:36:54 +0000] [57] [INFO] Shutting down: Master
-[2026-03-24 08:37:06 +0000] [45] [INFO] Handling signal: term
-==> Port scan timeout reached, no open ports detected. Bind your service to at least one port. If you don't need to receive traffic on any port, create a background worker instead.
-==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
-==> Timed Out
-==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
-==> Running 'gunicorn --config gunicorn.conf.py app:app'
-[2026-03-24 08:54:32 +0000] [38] [INFO] Starting gunicorn 25.1.0
-[2026-03-24 08:54:32 +0000] [38] [INFO] Listening at: http://0.0.0.0:10000 (38)
-[2026-03-24 08:54:32 +0000] [38] [INFO] Using worker: sync
-[2026-03-24 08:54:32 +0000] [38] [INFO] Control socket listening at /opt/render/project/src/gunicorn.ctl
-[2026-03-24 08:54:32 +0000] [40] [INFO] Booting worker with pid: 40
-[2026-03-24 09:10:10 +0000] [38] [INFO] Handling signal: term
-[2026-03-24 09:10:10 +0000] [40] [INFO] Worker exiting (pid: 40)
-[2026-03-24 09:10:12 +0000] [38] [INFO] Shutting down: Master
+[2026-03-25 12:56:17 +0000] [38] [INFO] Starting gunicorn 25.1.0
+[2026-03-25 12:56:17 +0000] [38] [INFO] Listening at: http://0.0.0.0:10000 (38)
+[2026-03-25 12:56:17 +0000] [38] [INFO] Using worker: sync
+[2026-03-25 12:56:17 +0000] [38] [INFO] Control socket listening at /opt/render/project/src/gunicorn.ctl

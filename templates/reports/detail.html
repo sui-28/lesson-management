@@ -6,6 +6,11 @@
   <h1>報告書詳細</h1>
   <div>
     <a href="{{ url_for('report_edit', report_id=report.id) }}" class="btn btn-outline">編集</a>
+    <form method="POST" action="{{ url_for('report_delete', report_id=report.id) }}"
+          style="display:inline"
+          onsubmit="return confirm('この報告書を削除しますか？')">
+      <button type="submit" class="btn btn-danger">削除</button>
+    </form>
     <a href="{{ url_for('report_list') }}" class="btn btn-ghost">一覧へ戻る</a>
   </div>
 </div>
