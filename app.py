@@ -1012,7 +1012,8 @@ def sync_from_google_sheets():
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(spreadsheet_id)
-        ws = sh.get_worksheet(0)
+        sheet_name = os.environ.get("SHEET_NAME")
+        ws = sh.worksheet(sheet_name) if sheet_name else sh.get_worksheet(0)
         rows = ws.get_all_records()
     except Exception as e:
         return False, f"スプレッドシートの読み込みに失敗しました: {e}"
