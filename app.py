@@ -288,6 +288,7 @@ def report_new():
             lesson_duration = request.form.get("lesson_duration", "").strip()
             content = request.form.get("content", "").strip()
             next_plan = request.form.get("next_plan", "").strip()
+            next_lesson_date = request.form.get("next_lesson_date", "").strip()
 
             errors = []
             if not lesson_date:
@@ -317,6 +318,7 @@ def report_new():
                     lesson_duration=lesson_duration,
                     content=content or None,
                     next_plan=next_plan or None,
+                    next_lesson_date=next_lesson_date or None,
                 )
                 db.add(report)
                 db.commit()
@@ -376,6 +378,7 @@ def report_edit(report_id):
             student_id = request.form.get("student_id")
             content = request.form.get("content", "").strip()
             next_plan = request.form.get("next_plan", "").strip()
+            next_lesson_date = request.form.get("next_lesson_date", "").strip()
 
             errors = []
             if not lesson_date:
@@ -394,6 +397,7 @@ def report_edit(report_id):
                 report.student_id = int(student_id)
                 report.content = content or None
                 report.next_plan = next_plan or None
+                report.next_lesson_date = next_lesson_date or None
                 report.updated_at = datetime.now(timezone.utc)
                 db.commit()
                 flash("報告書を更新しました。", "success")
@@ -955,26 +959,30 @@ def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     Base.metadata.create_all(engine)
 
-    # マイグレーション: messageテーブルが存在しなければ作成（create_allで自動作成されるため念のため）
-    # total_lessons カラムがなければ追加
+    # マイグレーション: 不足カラムを自動追加
+    _migrations = [
+        ("student", "total_lessons", "INTEGER"),
+        ("report",  "next_lesson_date", "VARCHAR(10)"),
+    ]
     try:
         with engine.connect() as conn:
-            if DATABASE_URL.startswith("postgresql"):
-                result = conn.execute(text(
-                    "SELECT column_name FROM information_schema.columns "
-                    "WHERE table_name='student' AND column_name='total_lessons'"
-                ))
-                if not result.fetchone():
-                    conn.execute(text("ALTER TABLE student ADD COLUMN total_lessons INTEGER"))
-                    conn.commit()
-                    print("Migration: student.total_lessons カラムを追加しました")
-            else:
-                result = conn.execute(text("PRAGMA table_info(student)"))
-                cols = [row[1] for row in result.fetchall()]
-                if "total_lessons" not in cols:
-                    conn.execute(text("ALTER TABLE student ADD COLUMN total_lessons INTEGER"))
-                    conn.commit()
-                    print("Migration: student.total_lessons カラムを追加しました")
+            for table, column, coltype in _migrations:
+                if DATABASE_URL.startswith("postgresql"):
+                    result = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        f"WHERE table_name='{table}' AND column_name='{column}'"
+                    ))
+                    if not result.fetchone():
+                        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}"))
+                        conn.commit()
+                        print(f"Migration: {table}.{column} カラムを追加しました")
+                else:
+                    result = conn.execute(text(f"PRAGMA table_info({table})"))
+                    cols = [row[1] for row in result.fetchall()]
+                    if column not in cols:
+                        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}"))
+                        conn.commit()
+                        print(f"Migration: {table}.{column} カラムを追加しました")
     except Exception as e:
         print(f"Migration warning: {e}")
     db = SessionLocal()
@@ -1187,6 +1195,7 @@ def public_submit():
             lesson_duration = request.form.get("lesson_duration", "").strip()
             content = request.form.get("content", "").strip()
             next_plan = request.form.get("next_plan", "").strip()
+            next_lesson_date = request.form.get("next_lesson_date", "").strip()
 
             errors = []
             if not lesson_date:
@@ -1209,6 +1218,7 @@ def public_submit():
                     lesson_duration=lesson_duration,
                     content=content or None,
                     next_plan=next_plan or None,
+                    next_lesson_date=next_lesson_date or None,
                 )
                 db.add(report)
                 db.commit()

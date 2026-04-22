@@ -79,6 +79,7 @@ class Report(Base):
     lesson_duration = Column(String(50), nullable=False)
     content = Column(Text, nullable=True)
     next_plan = Column(Text, nullable=True)
+    next_lesson_date = Column(String(10), nullable=True)  # YYYY-MM-DD
     submitted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
                         onupdate=lambda: datetime.now(timezone.utc))

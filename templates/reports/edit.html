@@ -48,6 +48,13 @@
         <textarea id="next_plan" name="next_plan" class="form-control" rows="2">{{ report.next_plan or '' }}</textarea>
       </div>
 
+      <!-- 次回授業日程 -->
+      <div class="form-group">
+        <label for="next_lesson_date">次回授業日程 <span class="optional">（任意）</span></label>
+        <input type="date" id="next_lesson_date" name="next_lesson_date" class="form-control"
+               value="{{ report.next_lesson_date or '' }}">
+      </div>
+
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">更新する</button>
         <a href="{{ url_for('report_detail', report_id=report.id) }}" class="btn btn-ghost">キャンセル</a>

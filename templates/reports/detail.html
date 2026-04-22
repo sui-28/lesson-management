@@ -36,6 +36,9 @@
       <dt>次回の授業予定</dt>
       <dd class="content-text">{{ report.next_plan or '（未入力）' }}</dd>
 
+      <dt>次回授業日程</dt>
+      <dd>{{ report.next_lesson_date or '（未入力）' }}</dd>
+
       <dt>提出日時</dt>
       <dd>{{ report.submitted_at.strftime('%Y年%m月%d日 %H:%M') }}</dd>
 

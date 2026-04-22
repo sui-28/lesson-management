@@ -71,6 +71,13 @@
                   placeholder="次回取り組む予定の内容">{{ request.form.get('next_plan', '') }}</textarea>
       </div>
 
+      <!-- 次回授業日程 -->
+      <div class="form-group">
+        <label for="next_lesson_date">次回授業日程 <span class="optional">（任意）</span></label>
+        <input type="date" id="next_lesson_date" name="next_lesson_date" class="form-control"
+               value="{{ request.form.get('next_lesson_date', '') }}">
+      </div>
+
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">提出する</button>
         <a href="{{ url_for('report_list') }}" class="btn btn-ghost">キャンセル</a>
