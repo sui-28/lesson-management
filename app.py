@@ -1007,7 +1007,13 @@ def sync_from_google_sheets():
         return False, "GOOGLE_CREDENTIALS_JSON または SPREADSHEET_ID が設定されていません。"
 
     try:
+        # 前後の余分なクォートを除去して安全にパース
+        creds_json = creds_json.strip().strip("'\"")
         creds_dict = json.loads(creds_json)
+    except json.JSONDecodeError as e:
+        return False, (f"GOOGLE_CREDENTIALS_JSON のJSON解析に失敗しました: {e}。"
+                       "Renderの環境変数に { から始まるJSON本文をそのまま貼り付けてください（前後にクォート不要）。")
+    try:
         scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         gc = gspread.authorize(creds)
