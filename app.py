@@ -1013,24 +1013,35 @@ def sync_from_google_sheets():
         return False, (f"GOOGLE_CREDENTIALS_JSON のJSON解析に失敗しました: {e}。"
                        "Renderの環境変数に { から始まるJSON本文をそのまま貼り付けてください（前後にクォート不要）。")
     try:
+        from google.oauth2.service_account import Credentials as SACredentials
         spreadsheet_id = spreadsheet_id.strip()
-        gc = gspread.service_account_from_dict(creds_dict)
-        sh = gc.open_by_key(spreadsheet_id)
+        client_email = creds_dict.get("client_email", "不明")
+
+        # スコープを明示的に指定して認証
+        scopes = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = SACredentials.from_service_account_info(creds_dict, scopes=scopes)
+        gc = gspread.Client(auth=creds)
+
+        try:
+            sh = gc.open_by_key(spreadsheet_id)
+        except gspread.exceptions.APIError as e:
+            status = e.response.status_code if hasattr(e, 'response') else '?'
+            return False, (
+                f"スプレッドシートへのアクセス失敗 (HTTP {status})。\n"
+                f"・使用中のサービスアカウント: {client_email}\n"
+                f"・SPREADSHEET_ID: {spreadsheet_id}\n"
+                "上記のサービスアカウントに対してスプレッドシートが共有されているか確認してください。"
+            )
+
         sheet_name = os.environ.get("SHEET_NAME", "").strip()
         ws = sh.worksheet(sheet_name) if sheet_name else sh.get_worksheet(0)
         rows = ws.get_all_records()
-    except gspread.exceptions.APIError as e:
-        status = e.response.status_code if hasattr(e, 'response') else '?'
-        if status == 404:
-            return False, ("スプレッドシートが見つかりません（404）。"
-                           "① SPREADSHEET_IDが正しいか、"
-                           "② サービスアカウントのメールアドレスにスプレッドシートを共有しているか確認してください。")
-        if status == 403:
-            return False, ("アクセス権限がありません（403）。"
-                           "サービスアカウントのメールアドレスに閲覧権限でスプレッドシートを共有してください。")
-        return False, f"Google API エラー ({status}): {e}"
     except Exception as e:
-        return False, f"スプレッドシートの読み込みに失敗しました: {e}"
+        return False, f"スプレッドシートの読み込みに失敗しました: {type(e).__name__}: {e}"
 
     db = SessionLocal()
     try:
