@@ -440,6 +440,14 @@ def report_delete(report_id):
 def api_students():
     teacher_id = request.args.get("teacher_id", type=int)
     q = request.args.get("q", "").strip()
+    # スペース（半角・全角）を除去して比較するヘルパー
+    def normalize(s):
+        return s.replace(" ", "").replace("　", "")
+    q_norm = normalize(q)
+
+    def matches(name):
+        return not q_norm or q_norm in normalize(name)
+
     db = SessionLocal()
     try:
         if teacher_id:
@@ -451,17 +459,17 @@ def api_students():
             result = []
             # 担当生徒を優先
             for s in assigned:
-                if not q or q in s.name:
+                if matches(s.name):
                     result.append({"id": s.id, "name": s.name, "assigned": True})
             # 担当外
             for s in all_students:
                 if s.id not in assigned_ids:
-                    if not q or q in s.name:
+                    if matches(s.name):
                         result.append({"id": s.id, "name": s.name, "assigned": False})
         else:
             students = db.query(Student).order_by(Student.name).all()
             result = [{"id": s.id, "name": s.name, "assigned": None}
-                      for s in students if not q or q in s.name]
+                      for s in students if matches(s.name)]
 
         return jsonify(result[:30])
     finally:
