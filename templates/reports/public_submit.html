@@ -9,7 +9,7 @@
 
 <div class="card form-card">
   <div class="card-body">
-    <form method="POST" action="{{ url_for('public_submit') }}">
+    <form method="POST" action="{{ url_for('public_submit') }}" id="publicForm">
 
       <!-- 担当メンター -->
       <div class="form-group">
@@ -24,17 +24,17 @@
         </select>
       </div>
 
-      <!-- メンティー -->
+      <!-- メンティー（サジェスト） -->
       <div class="form-group">
-        <label for="student_id">メンティー <span class="required">*</span></label>
-        <select id="student_id" name="student_id" class="form-control" required>
-          <option value="">選択してください</option>
-          {% for s in students %}
-          <option value="{{ s.id }}" {% if request.form.get('student_id') == s.id|string %}selected{% endif %}>
-            {{ s.name }}
-          </option>
-          {% endfor %}
-        </select>
+        <label for="student_search">メンティー <span class="required">*</span></label>
+        <div class="suggest-wrapper">
+          <input type="text" id="student_search" class="form-control"
+                 placeholder="メンティー名を入力して検索..." autocomplete="off">
+          <input type="hidden" id="student_id" name="student_id"
+                 value="{{ request.form.get('student_id', '') }}">
+          <div id="suggest-dropdown" class="suggest-dropdown hidden"></div>
+        </div>
+        <p class="form-hint">担当メンティーが優先表示されます。担当外のメンティーも選択できます。</p>
       </div>
 
       <!-- 授業実施日・授業時間 -->
@@ -78,4 +78,79 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const teacherSelect = document.getElementById('teacher_id');
+  const searchInput   = document.getElementById('student_search');
+  const hiddenInput   = document.getElementById('student_id');
+  const dropdown      = document.getElementById('suggest-dropdown');
+  let debounceTimer   = null;
+
+  const GROUP_LABEL = { assigned: '担当メンティー', other: '担当外', none: '担当なし（未割当）' };
+
+  function getTeacherId() {
+    return teacherSelect ? teacherSelect.value : '';
+  }
+
+  function fetchSuggestions(q) {
+    const tid = getTeacherId();
+    const url = `/api/public/students?q=${encodeURIComponent(q)}&teacher_id=${tid}`;
+    fetch(url).then(r => r.json()).then(data => renderDropdown(data));
+  }
+
+  function renderDropdown(items) {
+    dropdown.innerHTML = '';
+    if (!items.length) { dropdown.classList.add('hidden'); return; }
+    let lastGroup = null;
+    items.forEach(item => {
+      const g = item.group || null;
+      if (g && g !== lastGroup) {
+        const header = document.createElement('div');
+        header.className = 'suggest-group-header';
+        header.textContent = GROUP_LABEL[g] || g;
+        dropdown.appendChild(header);
+        lastGroup = g;
+      }
+      const el = document.createElement('div');
+      el.className = 'suggest-item' + (g === 'assigned' ? ' assigned' : '');
+      el.textContent = item.name;
+      el.addEventListener('mousedown', () => {
+        hiddenInput.value = item.id;
+        searchInput.value = item.name;
+        dropdown.classList.add('hidden');
+      });
+      dropdown.appendChild(el);
+    });
+    dropdown.classList.remove('hidden');
+  }
+
+  searchInput.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    hiddenInput.value = '';
+    debounceTimer = setTimeout(() => fetchSuggestions(this.value), 200);
+  });
+  searchInput.addEventListener('focus', function() { fetchSuggestions(this.value); });
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.suggest-wrapper')) dropdown.classList.add('hidden');
+  });
+  teacherSelect.addEventListener('change', function() {
+    searchInput.value = '';
+    hiddenInput.value = '';
+    dropdown.classList.add('hidden');
+  });
+
+  // バリデーション: student_id が未選択のまま送信しないようにする
+  document.getElementById('publicForm').addEventListener('submit', function(e) {
+    if (!hiddenInput.value) {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.style.borderColor = 'var(--danger, #e53e3e)';
+      alert('メンティーをリストから選択してください。');
+    }
+  });
+})();
+</script>
 {% endblock %}

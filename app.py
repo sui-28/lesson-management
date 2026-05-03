@@ -1211,6 +1211,61 @@ def admin_messages():
         db.close()
 
 
+# ── 公開API: ログイン不要の生徒サジェスト ──────────────────────
+@app.route("/api/public/students")
+def api_public_students():
+    """ログイン不要の生徒サジェスト（送信専用リンク用）"""
+    teacher_id = request.args.get("teacher_id", type=int)
+    q = request.args.get("q", "").strip()
+
+    def normalize(s):
+        return s.replace(" ", "").replace("　", "")
+    q_norm = normalize(q)
+
+    def matches(name):
+        return not q_norm or q_norm in normalize(name)
+
+    db = SessionLocal()
+    try:
+        any_assigned_ids = set(
+            row[0] for row in db.execute(
+                sa_select(assignment_table.c.student_id).distinct()
+            ).fetchall()
+        )
+        all_students = db.query(Student).order_by(Student.name).all()
+
+        if teacher_id:
+            teacher = db.get(Teacher, teacher_id)
+            assigned = teacher.students if teacher else []
+            assigned_ids = {s.id for s in assigned}
+
+            result = []
+            other = []
+            no_mentor = []
+            for s in assigned:
+                if matches(s.name):
+                    result.append({"id": s.id, "name": s.name, "group": "assigned"})
+            for s in all_students:
+                if s.id not in assigned_ids and matches(s.name):
+                    if s.id in any_assigned_ids:
+                        other.append({"id": s.id, "name": s.name, "group": "other"})
+                    else:
+                        no_mentor.append({"id": s.id, "name": s.name, "group": "none"})
+            result.extend(other)
+            result.extend(no_mentor)
+        else:
+            result = []
+            for s in all_students:
+                if matches(s.name):
+                    g = "none" if s.id not in any_assigned_ids else "other"
+                    result.append({"id": s.id, "name": s.name, "group": g})
+
+        limit = 100 if q_norm else 30
+        return jsonify(result[:limit])
+    finally:
+        db.close()
+
+
 # ── 公開: ログイン不要の報告書提出 ──────────────────────────
 @app.route("/submit", methods=["GET", "POST"])
 def public_submit():
