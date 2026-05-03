@@ -450,14 +450,23 @@ def api_students():
 
     db = SessionLocal()
     try:
+        # assignment_table を直接クエリして「いずれかのメンターが設定されている生徒ID」を取得
+        # s.teachers のORM経由チェックはセッションキャッシュの影響を受けるため使用しない
+        any_assigned_ids = set(
+            row[0] for row in db.execute(
+                sa_select(assignment_table.c.student_id).distinct()
+            ).fetchall()
+        )
+
+        all_students = db.query(Student).order_by(Student.name).all()
+
         if teacher_id:
             teacher = db.get(Teacher, teacher_id)
             assigned = teacher.students if teacher else []
             assigned_ids = {s.id for s in assigned}
-            all_students = db.query(Student).order_by(Student.name).all()
 
             result = []
-            other = []    # 他メンター担当
+            other = []     # 他メンター担当
             no_mentor = [] # メンター未設定
 
             # ① 担当生徒を優先
@@ -467,19 +476,18 @@ def api_students():
             # ② 担当外・担当なしを分類
             for s in all_students:
                 if s.id not in assigned_ids and matches(s.name):
-                    if s.teachers:  # 何らかのメンターが設定されている
+                    if s.id in any_assigned_ids:
                         other.append({"id": s.id, "name": s.name, "group": "other"})
-                    else:           # メンター未設定
+                    else:
                         no_mentor.append({"id": s.id, "name": s.name, "group": "none"})
 
             result.extend(other)
             result.extend(no_mentor)
         else:
-            students = db.query(Student).order_by(Student.name).all()
             result = []
-            for s in students:
+            for s in all_students:
                 if matches(s.name):
-                    g = "none" if not s.teachers else "other"
+                    g = "none" if s.id not in any_assigned_ids else "other"
                     result.append({"id": s.id, "name": s.name, "group": g})
 
         # 検索クエリがある場合は上限を緩和（最大100件）
