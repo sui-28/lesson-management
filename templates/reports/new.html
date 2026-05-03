@@ -109,23 +109,23 @@
     fetch(url).then(r => r.json()).then(data => renderDropdown(data));
   }
 
+  const GROUP_LABEL = { assigned: '担当メンティー', other: '担当外', none: '担当なし（未割当）' };
+
   function renderDropdown(items) {
     dropdown.innerHTML = '';
     if (!items.length) { dropdown.classList.add('hidden'); return; }
     let lastGroup = null;
     items.forEach(item => {
-      if (item.assigned !== null) {
-        const group = item.assigned ? 'assigned' : 'other';
-        if (group !== lastGroup) {
-          const header = document.createElement('div');
-          header.className = 'suggest-group-header';
-          header.textContent = item.assigned ? '担当メンティー' : '担当外';
-          dropdown.appendChild(header);
-          lastGroup = group;
-        }
+      const g = item.group || (item.assigned === true ? 'assigned' : item.assigned === false ? 'other' : null);
+      if (g && g !== lastGroup) {
+        const header = document.createElement('div');
+        header.className = 'suggest-group-header';
+        header.textContent = GROUP_LABEL[g] || g;
+        dropdown.appendChild(header);
+        lastGroup = g;
       }
       const el = document.createElement('div');
-      el.className = 'suggest-item' + (item.assigned ? ' assigned' : '');
+      el.className = 'suggest-item' + (g === 'assigned' ? ' assigned' : '');
       el.textContent = item.name;
       el.dataset.id = item.id;
       el.addEventListener('mousedown', () => {

@@ -457,21 +457,34 @@ def api_students():
             all_students = db.query(Student).order_by(Student.name).all()
 
             result = []
-            # 担当生徒を優先
+            other = []    # 他メンター担当
+            no_mentor = [] # メンター未設定
+
+            # ① 担当生徒を優先
             for s in assigned:
                 if matches(s.name):
-                    result.append({"id": s.id, "name": s.name, "assigned": True})
-            # 担当外
+                    result.append({"id": s.id, "name": s.name, "group": "assigned"})
+            # ② 担当外・担当なしを分類
             for s in all_students:
-                if s.id not in assigned_ids:
-                    if matches(s.name):
-                        result.append({"id": s.id, "name": s.name, "assigned": False})
+                if s.id not in assigned_ids and matches(s.name):
+                    if s.teachers:  # 何らかのメンターが設定されている
+                        other.append({"id": s.id, "name": s.name, "group": "other"})
+                    else:           # メンター未設定
+                        no_mentor.append({"id": s.id, "name": s.name, "group": "none"})
+
+            result.extend(other)
+            result.extend(no_mentor)
         else:
             students = db.query(Student).order_by(Student.name).all()
-            result = [{"id": s.id, "name": s.name, "assigned": None}
-                      for s in students if matches(s.name)]
+            result = []
+            for s in students:
+                if matches(s.name):
+                    g = "none" if not s.teachers else "other"
+                    result.append({"id": s.id, "name": s.name, "group": g})
 
-        return jsonify(result[:30])
+        # 検索クエリがある場合は上限を緩和（最大100件）
+        limit = 100 if q_norm else 30
+        return jsonify(result[:limit])
     finally:
         db.close()
 
