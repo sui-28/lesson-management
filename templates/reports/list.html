@@ -14,26 +14,16 @@
       {% if current_user.is_admin %}
       <div class="form-group">
         <label>メンター</label>
-        <select name="teacher_id" class="form-control form-control-sm">
-          <option value="">すべて</option>
-          {% for t in teachers %}
-          <option value="{{ t.id }}" {% if request.args.get('teacher_id')|int == t.id %}selected{% endif %}>
-            {{ t.name }}
-          </option>
-          {% endfor %}
-        </select>
+        <input type="text" name="teacher_q" class="form-control form-control-sm"
+               placeholder="名前で検索..."
+               value="{{ request.args.get('teacher_q', '') }}">
       </div>
       {% endif %}
       <div class="form-group">
         <label>メンティー</label>
-        <select name="student_id" class="form-control form-control-sm">
-          <option value="">すべて</option>
-          {% for s in students %}
-          <option value="{{ s.id }}" {% if request.args.get('student_id')|int == s.id %}selected{% endif %}>
-            {{ s.name }}
-          </option>
-          {% endfor %}
-        </select>
+        <input type="text" name="student_q" class="form-control form-control-sm"
+               placeholder="名前で検索..."
+               value="{{ request.args.get('student_q', '') }}">
       </div>
       <div class="form-group">
         <label>授業日（開始）</label>

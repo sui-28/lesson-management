@@ -248,28 +248,31 @@ def report_list():
                 query = query.filter(Report.id == -1)  # 空結果
 
         # 検索フィルタ
-        teacher_id = request.args.get("teacher_id")
-        student_id = request.args.get("student_id")
+        teacher_q = request.args.get("teacher_q", "").strip()
+        student_q = request.args.get("student_q", "").strip()
         date_from = request.args.get("date_from")
         date_to = request.args.get("date_to")
 
-        if teacher_id and current_user.is_admin:
-            query = query.filter(Report.teacher_id == int(teacher_id))
-        if student_id:
-            query = query.filter(Report.student_id == int(student_id))
         if date_from:
             query = query.filter(Report.lesson_date >= date_from)
         if date_to:
             query = query.filter(Report.lesson_date <= date_to)
 
         reports = query.all()
-        teachers = db.query(Teacher).order_by(Teacher.name).all() if current_user.is_admin else []
-        students = db.query(Student).order_by(Student.name).all()
+
+        # 名前検索：スペース正規化して部分一致
+        def normalize(s):
+            return s.replace(" ", "").replace("　", "")
+
+        if teacher_q and current_user.is_admin:
+            tq = normalize(teacher_q)
+            reports = [r for r in reports if tq in normalize(r.teacher.name)]
+        if student_q:
+            sq = normalize(student_q)
+            reports = [r for r in reports if sq in normalize(r.student.name)]
 
         return render_template("reports/list.html",
                                reports=reports,
-                               teachers=teachers,
-                               students=students,
                                notifications=notifications)
     finally:
         db.close()
