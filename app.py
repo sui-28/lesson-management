@@ -737,8 +737,8 @@ def admin_import():
         try:
             created_mentors = created_mentees = created_assignments = 0
             for row in rows:
-                mentor_name = (row.get("メンター名") or row.get("mentor") or "").strip()
-                mentee_name = (row.get("メンティー名") or row.get("mentee") or "").strip()
+                mentor_name = (row.get("担当メンター") or row.get("mentor") or "").strip()
+                mentee_name = (row.get("担当クライアント") or row.get("mentee") or "").strip()
                 total_raw = (row.get("契約回数") or "").strip()
                 total_lessons = int(total_raw) if total_raw.isdigit() else None
                 if not mentor_name or not mentee_name:
@@ -1079,17 +1079,25 @@ def sync_from_google_sheets():
 
         sheet_name = os.environ.get("SHEET_NAME", "").strip()
         ws = sh.worksheet(sheet_name) if sheet_name else sh.get_worksheet(0)
-        rows = ws.get_all_records()
+        # get_all_values() で生データ取得（列インデックスで読み取るため）
+        all_values = ws.get_all_values()
     except Exception as e:
         return False, f"スプレッドシートの読み込みに失敗しました: {type(e).__name__}: {e}"
+
+    # 1行目はヘッダーとしてスキップし、2行目以降をデータとして処理
+    # 列構成: 1列目=担当メンター / 2列目=担当クライアント / 4列目=契約回数
+    data_rows = all_values[1:] if len(all_values) > 1 else []
 
     db = SessionLocal()
     try:
         created_mentors = created_mentees = created_assignments = 0
-        for row in rows:
-            mentor_name = str(row.get("メンター名") or row.get("mentor") or "").strip()
-            mentee_name = str(row.get("メンティー名") or row.get("mentee") or "").strip()
-            total_raw = str(row.get("契約回数") or "").strip()
+        for vals in data_rows:
+            # 列数が足りない行はパディング
+            while len(vals) < 4:
+                vals.append("")
+            mentor_name = vals[0].strip()   # 1列目: 担当メンター
+            mentee_name = vals[1].strip()   # 2列目: 担当クライアント
+            total_raw   = vals[3].strip()   # 4列目: 契約回数
             total_lessons = int(total_raw) if total_raw.isdigit() else None
             if not mentor_name or not mentee_name:
                 continue
