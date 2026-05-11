@@ -1,4 +1,5 @@
 import os
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, abort
@@ -1098,7 +1099,9 @@ def sync_from_google_sheets():
             mentor_name = vals[0].strip()   # 1列目: 担当メンター
             mentee_name = vals[1].strip()   # 2列目: 担当クライアント
             total_raw   = vals[3].strip()   # 4列目: 契約回数
-            total_lessons = int(total_raw) if total_raw.isdigit() else None
+            # "10回" "10人" など数字以外が混在する形式にも対応
+            _m = re.search(r'\d+', total_raw)
+            total_lessons = int(_m.group()) if _m else None
             if not mentor_name or not mentee_name:
                 continue
 
