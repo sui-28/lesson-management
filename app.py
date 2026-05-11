@@ -1222,6 +1222,29 @@ def admin_messages():
         db.close()
 
 
+# ── 公開API: ログイン不要のメンター・生徒サジェスト ─────────────
+@app.route("/api/public/teachers")
+def api_public_teachers():
+    """ログイン不要のメンターサジェスト（送信専用リンク用）"""
+    q = request.args.get("q", "").strip()
+
+    def normalize(s):
+        return s.replace(" ", "").replace("　", "")
+    q_norm = normalize(q)
+
+    db = SessionLocal()
+    try:
+        teachers = db.query(Teacher).order_by(Teacher.name).all()
+        result = [
+            {"id": t.id, "name": t.name}
+            for t in teachers
+            if not q_norm or q_norm in normalize(t.name)
+        ]
+        return jsonify(result[:50])
+    finally:
+        db.close()
+
+
 # ── 公開API: ログイン不要の生徒サジェスト ──────────────────────
 @app.route("/api/public/students")
 def api_public_students():
@@ -1320,10 +1343,8 @@ def public_submit():
                 flash("報告書を提出しました。", "success")
                 return redirect(url_for("public_submit"))
 
-        teachers = db.query(Teacher).order_by(Teacher.name).all()
-        students = db.query(Student).order_by(Student.name).all()
-        return render_template("reports/public_submit.html",
-                               teachers=teachers, students=students)
+        # メンター・メンティーはAJAXサジェストで取得するためDBクエリ不要
+        return render_template("reports/public_submit.html")
     finally:
         db.close()
 

@@ -11,28 +11,27 @@
   <div class="card-body">
     <form method="POST" action="{{ url_for('public_submit') }}" id="publicForm">
 
-      <!-- 担当メンター -->
+      <!-- 担当メンター（サジェスト） -->
       <div class="form-group">
-        <label for="teacher_id">担当メンター <span class="required">*</span></label>
-        <select id="teacher_id" name="teacher_id" class="form-control" required>
-          <option value="">選択してください</option>
-          {% for t in teachers %}
-          <option value="{{ t.id }}" {% if request.form.get('teacher_id') == t.id|string %}selected{% endif %}>
-            {{ t.name }}
-          </option>
-          {% endfor %}
-        </select>
+        <label for="teacher_search">担当メンター <span class="required">*</span></label>
+        <div class="suggest-wrapper" id="teacher-wrapper">
+          <input type="text" id="teacher_search" class="form-control"
+                 placeholder="メンター名を入力して検索..." autocomplete="off">
+          <input type="hidden" id="teacher_id" name="teacher_id"
+                 value="{{ request.form.get('teacher_id', '') }}">
+          <div id="teacher-dropdown" class="suggest-dropdown hidden"></div>
+        </div>
       </div>
 
       <!-- メンティー（サジェスト） -->
       <div class="form-group">
         <label for="student_search">メンティー <span class="required">*</span></label>
-        <div class="suggest-wrapper">
+        <div class="suggest-wrapper" id="student-wrapper">
           <input type="text" id="student_search" class="form-control"
                  placeholder="メンティー名を入力して検索..." autocomplete="off">
           <input type="hidden" id="student_id" name="student_id"
                  value="{{ request.form.get('student_id', '') }}">
-          <div id="suggest-dropdown" class="suggest-dropdown hidden"></div>
+          <div id="student-dropdown" class="suggest-dropdown hidden"></div>
         </div>
         <p class="form-hint">担当メンティーが優先表示されます。担当外のメンティーも選択できます。</p>
       </div>
@@ -83,27 +82,65 @@
 {% block scripts %}
 <script>
 (function() {
-  const teacherSelect = document.getElementById('teacher_id');
-  const searchInput   = document.getElementById('student_search');
-  const hiddenInput   = document.getElementById('student_id');
-  const dropdown      = document.getElementById('suggest-dropdown');
-  let debounceTimer   = null;
+  // ── メンターサジェスト ──────────────────────────────────────
+  const teacherSearchInput  = document.getElementById('teacher_search');
+  const teacherHiddenInput  = document.getElementById('teacher_id');
+  const teacherDropdown     = document.getElementById('teacher-dropdown');
+
+  // ── メンティーサジェスト ────────────────────────────────────
+  const studentSearchInput  = document.getElementById('student_search');
+  const studentHiddenInput  = document.getElementById('student_id');
+  const studentDropdown     = document.getElementById('student-dropdown');
 
   const GROUP_LABEL = { assigned: '担当メンティー', other: '担当外', none: '担当なし（未割当）' };
 
-  function getTeacherId() {
-    return teacherSelect ? teacherSelect.value : '';
+  let teacherTimer = null;
+  let studentTimer = null;
+
+  // ── メンターサジェスト ──────────────────────────────────────
+  function fetchTeachers(q) {
+    fetch(`/api/public/teachers?q=${encodeURIComponent(q)}`)
+      .then(r => r.json()).then(data => renderTeacherDropdown(data));
   }
 
-  function fetchSuggestions(q) {
-    const tid = getTeacherId();
+  function renderTeacherDropdown(items) {
+    teacherDropdown.innerHTML = '';
+    if (!items.length) { teacherDropdown.classList.add('hidden'); return; }
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'suggest-item';
+      el.textContent = item.name;
+      el.addEventListener('mousedown', () => {
+        teacherHiddenInput.value = item.id;
+        teacherSearchInput.value = item.name;
+        teacherDropdown.classList.add('hidden');
+        // メンター変更時はメンティーをリセット
+        studentSearchInput.value = '';
+        studentHiddenInput.value = '';
+        studentDropdown.classList.add('hidden');
+      });
+      teacherDropdown.appendChild(el);
+    });
+    teacherDropdown.classList.remove('hidden');
+  }
+
+  teacherSearchInput.addEventListener('input', function() {
+    clearTimeout(teacherTimer);
+    teacherHiddenInput.value = '';
+    teacherTimer = setTimeout(() => fetchTeachers(this.value), 200);
+  });
+  teacherSearchInput.addEventListener('focus', function() { fetchTeachers(this.value); });
+
+  // ── メンティーサジェスト ────────────────────────────────────
+  function fetchStudents(q) {
+    const tid = teacherHiddenInput.value;
     const url = `/api/public/students?q=${encodeURIComponent(q)}&teacher_id=${tid}`;
-    fetch(url).then(r => r.json()).then(data => renderDropdown(data));
+    fetch(url).then(r => r.json()).then(data => renderStudentDropdown(data));
   }
 
-  function renderDropdown(items) {
-    dropdown.innerHTML = '';
-    if (!items.length) { dropdown.classList.add('hidden'); return; }
+  function renderStudentDropdown(items) {
+    studentDropdown.innerHTML = '';
+    if (!items.length) { studentDropdown.classList.add('hidden'); return; }
     let lastGroup = null;
     items.forEach(item => {
       const g = item.group || null;
@@ -111,43 +148,48 @@
         const header = document.createElement('div');
         header.className = 'suggest-group-header';
         header.textContent = GROUP_LABEL[g] || g;
-        dropdown.appendChild(header);
+        studentDropdown.appendChild(header);
         lastGroup = g;
       }
       const el = document.createElement('div');
       el.className = 'suggest-item' + (g === 'assigned' ? ' assigned' : '');
       el.textContent = item.name;
       el.addEventListener('mousedown', () => {
-        hiddenInput.value = item.id;
-        searchInput.value = item.name;
-        dropdown.classList.add('hidden');
+        studentHiddenInput.value = item.id;
+        studentSearchInput.value = item.name;
+        studentDropdown.classList.add('hidden');
       });
-      dropdown.appendChild(el);
+      studentDropdown.appendChild(el);
     });
-    dropdown.classList.remove('hidden');
+    studentDropdown.classList.remove('hidden');
   }
 
-  searchInput.addEventListener('input', function() {
-    clearTimeout(debounceTimer);
-    hiddenInput.value = '';
-    debounceTimer = setTimeout(() => fetchSuggestions(this.value), 200);
+  studentSearchInput.addEventListener('input', function() {
+    clearTimeout(studentTimer);
+    studentHiddenInput.value = '';
+    studentTimer = setTimeout(() => fetchStudents(this.value), 200);
   });
-  searchInput.addEventListener('focus', function() { fetchSuggestions(this.value); });
+  studentSearchInput.addEventListener('focus', function() { fetchStudents(this.value); });
+
+  // ── ドロップダウンを外クリックで閉じる ─────────────────────
   document.addEventListener('click', function(e) {
-    if (!e.target.closest('.suggest-wrapper')) dropdown.classList.add('hidden');
-  });
-  teacherSelect.addEventListener('change', function() {
-    searchInput.value = '';
-    hiddenInput.value = '';
-    dropdown.classList.add('hidden');
+    if (!e.target.closest('#teacher-wrapper')) teacherDropdown.classList.add('hidden');
+    if (!e.target.closest('#student-wrapper')) studentDropdown.classList.add('hidden');
   });
 
-  // バリデーション: student_id が未選択のまま送信しないようにする
+  // ── 送信バリデーション ──────────────────────────────────────
   document.getElementById('publicForm').addEventListener('submit', function(e) {
-    if (!hiddenInput.value) {
+    if (!teacherHiddenInput.value) {
       e.preventDefault();
-      searchInput.focus();
-      searchInput.style.borderColor = 'var(--danger, #e53e3e)';
+      teacherSearchInput.focus();
+      teacherSearchInput.style.borderColor = 'var(--danger, #e53e3e)';
+      alert('メンターをリストから選択してください。');
+      return;
+    }
+    if (!studentHiddenInput.value) {
+      e.preventDefault();
+      studentSearchInput.focus();
+      studentSearchInput.style.borderColor = 'var(--danger, #e53e3e)';
       alert('メンティーをリストから選択してください。');
     }
   });
